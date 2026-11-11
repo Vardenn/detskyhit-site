@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Detsky Hit — детская одежда 11–15 лет</title>
+<meta name="description" content="Detsky Hit — детская одежда 11–15 лет. Караганда, ТД Таир 3, 2 этаж. Доставка по всему Казахстану.">
+<meta name="theme-color" content="#ffffff">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23111'/%3E%3Ctext x='32' y='42' font-family='Arial' font-size='26' font-weight='700' fill='%23fff' text-anchor='middle'%3ED%7CH%3C/text%3E%3C/svg%3E">
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{background:#fff;color:#111;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;overflow-x:hidden}
+.shell{max-width:480px;margin:0 auto;min-height:100dvh;background:#fff;position:relative}
+@media(min-width:520px){.shell{border-left:1px solid #e5e5e5;border-right:1px solid #e5e5e5}}
+.top{position:sticky;top:0;z-index:30;background:#fff;border-bottom:1px solid #e5e5e5;display:flex;align-items:center;justify-content:space-between;padding:14px 16px;gap:8px}
+.brand{font-weight:800;font-size:19px;letter-spacing:-.02em;line-height:1.1}
+.brand small{display:block;font-weight:500;font-size:10px;letter-spacing:.18em;color:#888;text-transform:uppercase}
+.top-right{display:flex;gap:8px;align-items:center}
+.icon-btn,.top-wa{display:flex;align-items:center;gap:6px;border:1px solid #111;border-radius:999px;padding:8px 12px;font-size:13px;font-weight:600;color:#111;background:#fff;cursor:pointer;text-decoration:none;white-space:nowrap}
+.top-wa{border-color:#25d366;background:#25d366;color:#111;border:none}
+.fav-badge{position:absolute;top:-6px;right:-6px;background:#c00;color:#fff;font-size:10px;border-radius:999px;min-width:18px;height:18px;display:flex;align-items:center;justify-content:center;padding:0 4px;font-weight:700}
+.fav-wrap{position:relative}
+.profile{display:flex;gap:18px;padding:18px 16px 14px;align-items:center}
+.avatar{width:84px;height:84px;border-radius:50%;background:#111;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:22px;flex:none}
+.pstats{display:flex;gap:22px}
+.pstat b{display:block;font-size:16px}
+.pstat span{font-size:12px;color:#666}
+.pdesc{padding:0 16px 14px;font-size:13.5px;line-height:1.55;white-space:pre-line}
+.chips{position:sticky;top:52px;z-index:25;background:#fff;border-bottom:1px solid #e5e5e5;display:flex;gap:8px;overflow-x:auto;padding:10px 12px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;padding:8px 15px;border:1px solid #d9d9d9;border-radius:999px;background:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap}
+.chip.active{background:#111;color:#fff;border-color:#111}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:2px}
+.tile{position:relative;aspect-ratio:1/1;background:#f4f4f4;border:0;padding:0;cursor:pointer;overflow:hidden}
+.tile img{width:100%;height:100%;object-fit:contain;display:block}
+.tag{position:absolute;left:0;right:0;bottom:0;padding:14px 6px 5px;color:#fff;font-size:11px;font-weight:700;background:linear-gradient(transparent,rgba(0,0,0,.55));text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fav-btn-tile{position:absolute;top:6px;right:6px;z-index:2;background:rgba(255,255,255,.85);border:0;border-radius:999px;width:28px;height:28px;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.viewer{position:fixed;inset:0;z-index:100;background:#fff;overflow-y:auto;overscroll-behavior:contain}
+.viewer[hidden]{display:none}
+.close{position:fixed;top:calc(10px + env(safe-area-inset-top));right:12px;z-index:120;width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.92);border:1px solid #ddd;font-size:15px;cursor:pointer}
+.post{border-bottom:1px solid #e5e5e5}
+.ph{height:70vh;position:relative;background:#f4f4f4;display:flex;align-items:center;justify-content:center}
+.car{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;height:100%;width:100%}
+.car::-webkit-scrollbar{display:none}
+.slide{flex:0 0 100%;scroll-snap-align:center;display:flex;align-items:center;justify-content:center;position:relative;background:#f4f4f4}
+.slide img{max-width:100%;max-height:100%;width:100%;height:100%;object-fit:contain}
+.dots{position:absolute;bottom:12px;left:0;right:0;display:flex;justify-content:center;gap:6px}
+.dot{width:6px;height:6px;border-radius:50%;background:#d9d9d9}
+.dot.on{background:#111}
+.bar{display:flex;align-items:center;gap:18px;padding:13px 16px;border-bottom:1px solid #e5e5e5}
+.icon-btn{background:none;border:0;padding:0;cursor:pointer;font-size:21px;line-height:1;color:#111}
+.fav-btn{display:flex;align-items:center;gap:4px}
+.fav-btn .heart{font-size:22px}
+.fav-btn.fav .heart{color:#c00}
+.cnt{font-size:13px;font-weight:600}
+.direct{margin-left:auto;background:#25d366;color:#111;border:0;border-radius:999px;padding:9px 16px;font-size:13px;font-weight:700;text-decoration:none;white-space:nowrap}
+.cap{padding:13px 16px 20px}
+.t{font-weight:700;font-size:15px}
+.p{font-size:15px;font-weight:700;margin-top:6px}
+.a{color:#888;font-size:13px;margin-top:2px}
+.s{font-size:13px;margin-top:8px}
+.desc{font-size:13px;color:#444;margin-top:8px;white-space:pre-line;line-height:1.6}
+.hint{margin-top:12px;color:#999;font-size:12px;text-align:center}
+.fav-list-wrap{padding:16px}
+.fav-title{font-weight:700;font-size:18px;margin-bottom:12px}
+.fav-item{display:flex;gap:12px;border:1px solid #eee;border-radius:12px;padding:8px;background:#fff;margin-bottom:10px;align-items:center}
+.fav-item img{width:90px;height:112px;object-fit:contain;background:#f4f4f4;border-radius:8px}
+.price{font-weight:700;margin-top:4px}
+.fav-remove{border:0;background:#f0f0f0;border-radius:8px;padding:6px 10px;font-size:12px;cursor:pointer;margin-top:6px}
+.fav-back{border:1px solid #111;background:#fff;border-radius:999px;padding:10px 24px;margin-top:16px;cursor:pointer;font-weight:600}
+.empty{padding:60px 24px;text-align:center;color:#777}
+.empty b{display:block;font-size:18px;color:#111;margin-bottom:8px}
+.hint-load{padding:80px 16px;text-align:center;color:#888;font-size:14px}
+</style>
+</head>
+<body>
+<div class="shell">
+  <div class="top">
+    <div class="brand"><span id="shopName">Detsky Hit</span><small id="tagline">детская одежда</small></div>
+    <div class="top-right">
+      <div class="fav-wrap"><button class="icon-btn fav-btn" id="showFavBtn">❤</button><span class="fav-badge" id="favBadge" hidden>0</span></div>
+      <a class="top-wa" id="waTop" href="#" target="_blank" rel="noopener">WhatsApp</a>
+    </div>
+  </div>
+  <section class="profile">
+    <div class="avatar" id="avatar">DH</div>
+    <div class="pstats"><div class="pstat"><b id="stProducts">0</b><span>товара</span></div><div class="pstat"><b>11–15</b><span>лет</span></div></div>
+  </section>
+  <div class="pdesc" id="bio">Детская одежда 11–15 лет</div>
+  <nav class="chips" id="chips"></nav>
+  <main class="grid" id="grid"><div class="hint-load">Загружаем каталог…</div></main>
+</div>
+
+<div class="viewer" id="viewer" hidden>
+  <button class="close" id="closeBtn" aria-label="Закрыть">✕</button>
+  <div id="posts"></div>
+</div>
+
+<section class="fav-list-wrap" id="favoritesSection" hidden>
+  <div class="fav-title">❤ Избранное</div>
+  <div id="favList"></div>
+  <button class="fav-back" id="favClose">Назад в каталог</button>
+</section>
+
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const CAT_LABEL = {'куртки':'Куртки','худи':'Свитшоты','рубашки':'Свитшоты','штаны':'Штаны'};
+const CHIPS = [['all','Все'],['куртки','Куртки'],['худи','Свитшоты'],['рубашки','Рубашки'],['штаны','Штаны']];
+const FAVS_KEY = 'detskyhit_favs';
+
+let PRODUCTS = [];
+let SETTINGS = { name:'Detsky Hit', tagline:'детская одежда', whatsapp:'77015300491', address:'', hours:'', bio:'', city:'', buttonWhatsapp:'Написать в WhatsApp', buttonDirect:'Написать в Директ' };
+
+function getFavs(){ try { return JSON.parse(localStorage.getItem(FAVS_KEY) || '[]'); } catch { return []; } }
+function setFavs(a){ localStorage.setItem(FAVS_KEY, JSON.stringify(a)); }
+function favBadgeUpdate(){ const n=getFavs().length; const b=$('favBadge'); b.hidden = n===0; b.textContent = n; }
+function fmtPrice(p){ const n = Number(String(p).replace(/\D/g,'')); return isFinite(n)&&n>0 ? n.toLocaleString('ru-RU')+' ₸' : String(p||''); }
+
+function renderTop(){
+  $('shopName').textContent = SETTINGS.name || 'Detsky Hit';
+  $('tagline').textContent = SETTINGS.tagline || 'детская одежда';
+  $('bio').textContent = SETTINGS.bio || '';
+  $('waTop').href = 'https://wa.me/' + String(SETTINGS.whatsapp||'').replace(/\D/g,'');
+  $('stProducts').textContent = PRODUCTS.length;
+  $('avatar').textContent = (SETTINGS.name||'DH').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+}
+function renderChips(){
+  $('chips').innerHTML = CHIPS.map(([k,l]) => `<button class="chip" data-cat="${k}">${l}</button>`).join('');
+  $('chips').querySelector('.chip').classList.add('active');
+  $('chips').addEventListener('click', e => {
+    const c = e.target.closest('.chip'); if(!c) return;
+    curCat = c.dataset.cat;
+    [...$('chips').children].forEach(x => x.classList.toggle('active', x === c));
+    renderGrid();
+  });
+}
+let curCat = 'all';
+const gridEl = $('grid');
+function filtered(){ return curCat === 'all' ? PRODUCTS : PRODUCTS.filter(p => p.category === curCat); }
+function renderGrid(){
+  const list = filtered();
+  const favs = getFavs();
+  if (!list.length){ gridEl.innerHTML = '<div class="empty"><b>Пока пусто</b>Скоро добавим товары</div>'; return; }
+  gridEl.innerHTML = list.map(p => `
+    <div class="tile" data-id="${esc(p.id)}">
+      <img src="${esc(p.images?.[0]||'')}" loading="lazy" alt="${esc(p.title||p.article)}">
+      <button class="fav-btn-tile" data-id="${esc(p.id)}" aria-label="В избранное">${favs.includes(p.id) ? '❤' : '🤍'}</button>
+      <span class="tag">${fmtPrice(p.price)}</span>
+    </div>`).join('');
+}
+gridEl.addEventListener('click', e => {
+  const fav = e.target.closest('.fav-btn-tile');
+  if (fav){
+    e.stopPropagation();
+    let favs = getFavs();
+    if (favs.includes(fav.dataset.id)) favs = favs.filter(x => x !== fav.dataset.id); else favs.push(fav.dataset.id);
+    setFavs(favs); favBadgeUpdate(); renderGrid(); return;
+  }
+  const tile = e.target.closest('.tile'); if(!tile) return;
+  openViewer(tile.dataset.id);
+});
+
+const viewer = $('viewer');
+$('closeBtn').addEventListener('click', () => viewer.hidden = true);
+document.addEventListener('keydown', e => { if (e.key === 'Escape') viewer.hidden = true; });
+
+function openViewer(id){
+  const p = PRODUCTS.find(x => x.id === id); if(!p) return;
+  const favs = getFavs();
+  $('posts').innerHTML = `
+    <article class="post" id="post-${esc(p.id)}">
+      <div class="ph">
+        <div class="car" id="car-${esc(p.id)}">${(p.images||[]).map(img => `<div class="slide"><img src="${esc(img)}" alt="${esc(p.title||p.article)}"></div>`).join('')}</div>
+        <div class="dots">${(p.images||[]).map((_,i)=>`<span class="dot${i===0?' on':''}"></span>`).join('')}</div>
+      </div>
+      <div class="bar">
+        <button class="icon-btn" id="favBtn">${favs.includes(p.id) ? '❤' : '🤍'}<span class="cnt" id="favCnt">${favs.length}</span></button>
+        <a class="direct" id="waBtn" target="_blank" rel="noopener">${esc(SETTINGS.buttonWhatsapp || 'Написать в WhatsApp')}</a>
+      </div>
+      <div class="cap">
+        <div class="t">${esc(p.title || ('арт. ' + p.article))}</div>
+        <div class="p">${fmtPrice(p.price)} · арт. ${esc(p.article)}</div>
+        <div class="s">Размеры: <b>${(p.sizes||[]).join(' · ') || '—'}</b></div>
+        ${p.description ? `<div class="desc">${esc(p.description)}</div>` : ''}
+      </div>
+    </article>`;
+  const msg = encodeURIComponent(`Здравствуйте! Интересует: ${p.title || p.article} (${fmtPrice(p.price)}), арт. ${p.article}`);
+  $('waBtn').href = 'https://wa.me/' + String(SETTINGS.whatsapp).replace(/\D/g,'') + '?text=' + msg;
+  $('favBtn').addEventListener('click', () => {
+    let favs = getFavs();
+    if (favs.includes(p.id)) favs = favs.filter(x => x !== p.id); else favs.push(p.id);
+    setFavs(favs); $('favBtn').firstChild.textContent = favs.includes(p.id) ? '❤' : '🤍';
+    $('favCnt').textContent = favs.length; favBadgeUpdate();
+  });
+  const slider = $('car-' + p.id);
+  if (slider) slider.addEventListener('scroll', () => {
+    const idx = Math.round(slider.scrollLeft / slider.clientWidth);
+    slider.parentElement.querySelectorAll('.dot').forEach((d,i) => d.classList.toggle('on', i === idx));
+  });
+  viewer.hidden = false;
+}
+
+$('showFavBtn').addEventListener('click', () => {
+  const ids = getFavs();
+  const favs = ids.map(id => PRODUCTS.find(p => p.id === id)).filter(Boolean);
+  $('favList').innerHTML = favs.length
+    ? favs.map(p => `<div class="fav-item"><img src="${esc(p.images?.[0]||'')}" alt="${esc(p.title||p.article)}"><div><b>${esc(p.title||p.article)}</b><div class="price">${fmtPrice(p.price)} · арт. ${esc(p.article)}</div><button class="fav-remove" data-id="${esc(p.id)}">Убрать</button></div></div>`).join('')
+    : '<p style="color:#888">Вы ещё ничего не добавили в избранное.</p>';
+  $('favoritesSection').hidden = false;
+  document.querySelector('.shell').hidden = true;
+  favBadgeUpdate();
+});
+$('favClose').addEventListener('click', () => { $('favoritesSection').hidden = true; document.querySelector('.shell').hidden = false; });
+$('favList').addEventListener('click', e => {
+  const b = e.target.closest('.fav-remove'); if(!b) return;
+  setFavs(getFavs().filter(x => x !== b.dataset.id));
+  $('showFavBtn').click();
+});
+
+fetch('/.netlify/functions/catalog')
+  .then(r => r.ok ? r.json() : Promise.reject(new Error('no catalog')))
+  .then(d => { PRODUCTS = d.products || []; SETTINGS = { ...SETTINGS, ...(d.settings || {}) }; renderTop(); renderChips(); renderGrid(); favBadgeUpdate(); })
+  .catch(() => { document.getElementById('grid').innerHTML = '<div class="empty"><b>Каталог временно недоступен</b>Попробуйте обновить страницу</div>'; });
+</script>
+</body>
+</html>

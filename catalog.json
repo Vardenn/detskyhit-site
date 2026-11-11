@@ -1,0 +1,757 @@
+[
+ {
+  "id": "HOODIE-BLACK-13398",
+  "title": "HOODIE BLACK 13398",
+  "article": "13398",
+  "price": "25300 KZT",
+  "color": "black",
+  "category": "худи",
+  "description": "",
+  "sizes": [
+   "140",
+   "150",
+   "160",
+   "170",
+   "180",
+   "190"
+  ],
+  "images": [
+   "img/img-20261020-wa9646.jpg",
+   "img/img-20261020-wa2839.jpg"
+  ]
+ },
+ {
+  "id": "HOODIE-BLACK-18119",
+  "title": "HOODIE BLACK 18119",
+  "article": "18119",
+  "price": "22900 KZT",
+  "color": "black",
+  "category": "худи",
+  "description": "",
+  "sizes": [
+   "140",
+   "150",
+   "160",
+   "170",
+   "180",
+   "190"
+  ],
+  "images": [
+   "img/img-20261020-wa2150.jpg",
+   "img/img-20261020-wa2132.jpg"
+  ]
+ },
+ {
+  "id": "HOODIE-BLACK-18164",
+  "title": "HOODIE BLACK 18164",
+  "article": "18164",
+  "price": "18900 KZT",
+  "color": "black",
+  "category": "худи",
+  "description": "",
+  "sizes": [
+   "140",
+   "150",
+   "160",
+   "170",
+   "180",
+   "190"
+  ],
+  "images": [
+   "img/img-20261020-wa9708.jpg",
+   "img/img-20261020-wa4138.jpg"
+  ]
+ },
+ {
+  "id": "HOODIE-BLACK-19239",
+  "title": "HOODIE BLACK 19239",
+  "article": "19239",
+  "price": "30900 KZT",
+  "color": "black",
+  "category": "худи",
+  "description": "",
+  "sizes": [
+   "140",
+   "150",
+   "160",
+   "170",
+   "180",
+   "190"
+  ],
+  "images": [
+   "img/img-20261020-wa6633.jpg",
+   "img/img-20261020-wa1930.jpg"
+  ]
+ },
+ {
+  "id": "HOODIE-BLACK-22253",
+  "title": "HOODIE BLACK 22253",
+  "article": "22253",
+  "price": "21900 KZT",
+  "color": "black",
+  "category": "худи",
+  "description": "",
+  "sizes": [
+   "140",
+   "150",
+   "160",
+   "170",
+   "180",
+   "190"
+  ],
+  "images": [
+   "img/img-20261020-wa9222.jpg"
+  ]
+ },
+ {
+  "id": "HOODIE-BLUE-19239",
+  "title": "HOODIE BLUE 19239",
+  "article": "19239",
+  "price": "30900 KZT",
+  "color": "blue",
+  "category": "худи",
+  "description": "",
+  "sizes": [
+   "140",
+   "150",
+   "160",
+   "170",
+   "180",
+   "190"
+  ],
+  "images": [
+   "img/img-20261020-wa1157.jpg",
+   "img/img-20261020-wa9004.jpg"
+  ]
+ },
+ {
+  "id": "HOODIE-GRAY-10621",
+  "title": "HOODIE GRAY 10621",
+  "article": "10621",
+  "price": "3900 KZT",
+  "color": "gray",
+  "category": "худи",
+  "description": "",
+  "sizes": [
+   "140",
+   "150",
+   "160",
+   "170",
+   "180",
+   "190"
+  ],
+  "images": [
+   "img/img-20261020-wa8432.jpg",
+   "img/img-20261020-wa6662.jpg"
+  ]
+ },
+ {
+  "id": "HOODIE-GRAY-15000",
+  "title": "HOODIE GRAY 15000",
+  "article": "15000",
+  "price": "21200 KZT",
+  "color": "gray",
+  "category": "худи",
+  "description": "",
+  "sizes": [
+   "140",
+   "150",
+   "160",
+   "170",
+   "180",
+   "190"
+  ],
+  "images": [
+   "img/img-20261020-wa2292.jpg",
+   "img/img-20261020-wa0027.jpg"
+  ]
+ },
+ {
+  "id": "HOODIE-GRAY-18119",
+  "title": "HOODIE GRAY 18119",
+  "article": "18119",
+  "price": "22900 KZT",
+  "color": "gray",
+  "category": "худи",
+  "description": "",
+  "sizes": [
+   "140",
+   "150",
+   "160",
+   "170",
+   "180",
+   "190"
+  ],
+  "images": [
+   "img/img-20261020-wa8591.jpg",
+   "img/img-20261020-wa3933.jpg"
+  ]
+ },
+ {
+  "id": "HOODIE-GRAY-18126",
+  "title": "HOODIE GRAY 18126",
+  "article": "18126",
+  "price": "17900 KZT",
+  "color": "gray",
+  "category": "худи",
+  "description": "",
+  "sizes": [
+   "140",
+   "150",
+   "160",
+   "170",
+   "180",
+   "190"
+  ],
+  "images": [
+   "img/img-20261020-wa6945.jpg",
+   "img/img-20261020-wa7998.jpg"
+  ]
+ },
+ {
+  "id": "HOODIE-GRAY-18126-2",
+  "title": "HOODIE GRAY 18126 2",
+  "article": "18126",
+  "price": "17900 KZT",
+  "color": "grey",
+  "category": "худи",
+  "description": "",
+  "sizes": [
+   "140",
+   "150",
+   "160",
+   "170",
+   "180",
+   "190"
+  ],
+  "images": [
+   "img/img-20261020-wa7411.jpg",
+   "img/img-20261020-wa1387.jpg"
+  ]
+ },
+ {
+  "id": "HOODIE-GRAY-18867",
+  "title": "HOODIE GRAY 18867",
+  "article": "18867",
+  "price": "16500 KZT",
+  "color": "gray",
+  "category": "худи",
+  "description": "",
+  "sizes": [
+   "140",
+   "150",
+   "160",
+   "170",
+   "180",
+   "190"
+  ],
+  "images": [
+   "img/img-20261020-wa5632.jpg",
+   "img/img-20261020-wa3787.jpg"
+  ]
+ },
+ {
+  "id": "KURTKA-BEIGE-19840",
+  "title": "KURTKA BEIGE 19840",
+  "article": "19840",
+  "price": "39900 KZT",
+  "color": "beige",
+  "category": "куртки",
+  "description": "",
+  "sizes": [
+   "140",
+   "150",
+   "160",
+   "170",
+   "180",
+   "190"
+  ],
+  "images": [
+   "img/aqpabxmqsugrvfeed3tzoj7gukfb65dhqqm100yqptywn8pp-r_xkn5ul0oajnfrjtvbtq2gt24vxjfe5rahgwfj.jpg",
+   "img/aqpiu--pn-fr9hjg0bq8xee36oli-boom94d8ysawkf3az-xu49cz9pbzhtksn2yfs5loslybuohfn-nqe_pguqo.jpg"
+  ]
+ },
+ {
+  "id": "KURTKA-BLACK-19369",
+  "title": "KURTKA BLACK 19369",
+  "article": "19369",
+  "price": "32900 KZT",
+  "color": "black",
+  "category": "куртки",
+  "description": "",
+  "sizes": [
+   "140",
+   "150",
+   "160",
+   "170",
+   "180",
+   "190"
+  ],
+  "images": [
+   "img/aqmxej9kfgty0jidjcytqu9u33spdxtudym1pp7o5lj2tsi63yjhy_ugbbvuhl8b63vldt2cqv5jskiuuft7dkkl.jpg",
+   "img/aqmu9hxisy2aqgt-h37rb_lyuskowyni7elmp1r4c6gbsusta0_kvq60ndmrcq3aqumgm_sguqtoioscv1hg7cuh.jpg"
+  ]
+ },
+ {
+  "id": "KURTKA-BLACK-19611",
+  "title": "KURTKA BLACK 19611",
+  "article": "19611",
+  "price": "37900 KZT",
+  "color": "black",
+  "category": "куртки",
+  "description": "",
+  "sizes": [
+   "140",
+   "150",
+   "160",
+   "170",
+   "180",
+   "190"
+  ],
+  "images": [
+   "img/aqoe7u2lt9cof-ccbkf7vuxt_t-ddv4fe0k2f8v6jme5jc8ajnqdwy805hz2vd9oxjp5q3v5pv1icgbxbggo6tes.jpg",
+   "img/aqnmimzcrdrgzx6o6i3s_hwsl1rh057gn1rgckjegp_muyscfjrila02k26pukray2pz0n4f7mv5oz91bp5pkbod.jpg"
+  ]
+ },
+ {
+  "id": "KURTKA-BLACK-19789",
+  "title": "KURTKA BLACK 19789",
+  "article": "19789",
+  "price": "34600 KZT",
+  "color": "black",
+  "category": "куртки",
+  "description": "",
+  "sizes": [
+   "140",
+   "150",
+   "160",
+   "170",
+   "180",
+   "190"
+  ],
+  "images": [
+   "img/aqoazdxevhtheqmdqlsf7qej-pegg5umifwknchn-f-gpqgbaguiaq-q8jgpjuypvuccry7z_ibrwcb0aumhtrtx.jpg",
+   "img/aqmow3ziprpn92eeqdg6-xxzwnpnw6y-pyn48dw414-u_8vfm68zf0y2vlglsr8gm5o3kvzxnhwxumit8qleqrdg.jpg"
+  ]
+ },
+ {
+  "id": "KURTKA-BLACK-19840",
+  "title": "KURTKA BLACK 19840",
+  "article": "19840",
+  "price": "39900 KZT",
+  "color": "black",
+  "category": "куртки",
+  "description": "",
+  "sizes": [
+   "140",
+   "150",
+   "160",
+   "170",
+   "180",
+   "190"
+  ],
+  "images": [
+   "img/aqptips_ejlkzvg6hoh9kpk39ezstxvxdcod1vgiytfz9r1uzog3h7pd4uxig_k1swbb0rjffzc4ud2ppqh7itlg.jpg",
+   "img/aqmqs12sgtqhsrbylvkzx9gskb7mhfwrudbzxl37x3f7lcq93xe6a2m7pidknpoz2ww_silbqkndflppaebmkd8u.jpg"
+  ]
+ },
+ {
+  "id": "KURTKA-BLACK-19840-2",
+  "title": "KURTKA BLACK 19840 2",
+  "article": "19840",
+  "price": "39900 KZT",
+  "color": "black",
+  "category": "куртки",
+  "description": "",
+  "sizes": [
+   "140",
+   "150",
+   "160",
+   "170",
+   "180",
+   "190"
+  ],
+  "images": [
+   "img/aqpeh58txabmgmiybizgzmzv6_ywockcwzez38ac6qmxdpnrv_gne9hizdsha6xw2vzlbamynwaeimb3dyp5b_so.jpg",
+   "img/aqnb4zevybc6e9vyoigqbkqqpnshrlph5-krco0cfim326zqsfj6tzpa-ga0vl-bn9hew_mp67aeego05tqsjhex.jpg"
+  ]
+ },
+ {
+  "id": "KURTKA-BLACK-19840-3",
+  "title": "KURTKA BLACK 19840 3",
+  "article": "19840",
+  "price": "39900 KZT",
+  "color": "black",
+  "category": "куртки",
+  "description": "",
+  "sizes": [
+   "140",
+   "150",
+   "160",
+   "170",
+   "180",
+   "190"
+  ],
+  "images": [
+   "img/aqokl3jo2wgs-t1vnuuohwfzdsceyfjtfy3x6ynrothpu6mgfs25fvehng_5zhca0ki3qeinoklmqufxwzzwo6c_.jpg",
+   "img/aqpozrsvuf9wk_0udx7mgxwlke2i4_dxri3n4icweovttlkf9lqrzkd4kzqcwdzsqc2beiswxqck4kxdj2myeazm.jpg"
+  ]
+ },
+ {
+  "id": "KURTKA-BLACK-19840-4",
+  "title": "KURTKA BLACK 19840 4",
+  "article": "19840",
+  "price": "39900 KZT",
+  "color": "gray",
+  "category": "куртки",
+  "description": "",
+  "sizes": [
+   "140",
+   "150",
+   "160",
+   "170",
+   "180",
+   "190"
+  ],
+  "images": [
+   "img/aqmn0nllhlp5xmapybn7eaqljvzkvdr2lpahgmvhibegdbglwzedq_djbqzbvfq9b39ynetjpejhqjxtgclflmz6.jpg",
+   "img/aqmy5f5wtzjdfmrcqlo0tng46urmwcjt8in1qg-v1zz0ns7v5_wjkgvdyiqa2dzbgiut4kkppe0flcbnib4wl3y_.jpg"
+  ]
+ },
+ {
+  "id": "KURTKA-BLACK-21881",
+  "title": "KURTKA BLACK 21881",
+  "article": "21881",
+  "price": "20000 KZT",
+  "color": "black",
+  "category": "куртки",
+  "description": "",
+  "sizes": [
+   "140",
+   "150",
+   "160",
+   "170",
+   "180",
+   "190"
+  ],
+  "images": [
+   "img/aqnitrxndz0dmsk6cl1ismeoe060lbr-qtxkrkcv9gyojqgjk1ru5ecyjc0caubl5dbjjsecfs6o5x6xupxzt53g.jpg",
+   "img/aqozpschgfwo8xqxhm57vs7rksp8fcfatm3wspj0znd9gki6mfuh-kfmfoqdvkogr0fitttoi2hmunalaysivggg.jpg"
+  ]
+ },
+ {
+  "id": "KURTKA-BLUE-19789",
+  "title": "KURTKA BLUE 19789",
+  "article": "19789",
+  "price": "34600 KZT",
+  "color": "blue",
+  "category": "куртки",
+  "description": "",
+  "sizes": [
+   "140",
+   "150",
+   "160",
+   "170",
+   "180",
+   "190"
+  ],
+  "images": [
+   "img/aqmzbcgbtb5ow14ljozcx_kmlzyiiofdyhmahcaplcdfpupcyektoueawbrexezixpyiehuoye2mv3seyrqbhhd6.jpg",
+   "img/aqnfbdpkh-mb4t45qcr1xt-swqr05tpupwtj7xwnqwmgtj0xtr13fz2beto78hpicgrv58x54f77_5rnu30erzl9.jpg"
+  ]
+ },
+ {
+  "id": "KURTKA-BROWN-19789",
+  "title": "KURTKA BROWN 19789",
+  "article": "19789",
+  "price": "34600 KZT",
+  "color": "brown",
+  "category": "куртки",
+  "description": "",
+  "sizes": [
+   "140",
+   "150",
+   "160",
+   "170",
+   "180",
+   "190"
+  ],
+  "images": [
+   "img/aqpegykwgajpyefn8ahskxfapg9c6vqcqqy6_d0rt_rwlbwdxih6lyxchcmno80mg7ltbvtt72gjblznymagd_ti.jpg",
+   "img/aqovmgc2cw53higuokgl-63hdgrwqpoczyy4ypwusqwyneu8pyrklyyuh0hcql00lf8cp7jelqqzaos-qlj4a56f.jpg"
+  ]
+ },
+ {
+  "id": "KURTKA-GRAY-19789",
+  "title": "KURTKA GRAY 19789",
+  "article": "19789",
+  "price": "34600 KZT",
+  "color": "gray",
+  "category": "куртки",
+  "description": "",
+  "sizes": [
+   "140",
+   "150",
+   "160",
+   "170",
+   "180",
+   "190"
+  ],
+  "images": [
+   "img/aqnamobddatbin7toblbjkylsdz73enymnzkj1d0bgpdrjkpcf75ilyubovit9jdffbp1q9ufhsyynuh6pmvvuog.jpg",
+   "img/aqnz9qaogr8wscs6r0gzo_cutmfeuwdwjtygvb8ehstc-loiymkifnyihlfhwndpat2gqecrehrddkjcqqxsgd91.jpg"
+  ]
+ },
+ {
+  "id": "KURTKA-GRAY-19840",
+  "title": "KURTKA GRAY 19840",
+  "article": "19840",
+  "price": "39900 KZT",
+  "color": "gray",
+  "category": "куртки",
+  "description": "",
+  "sizes": [
+   "140",
+   "150",
+   "160",
+   "170",
+   "180",
+   "190"
+  ],
+  "images": [
+   "img/aqozvywadoz-1qxgbcd581fzqsqrv6usismrcucm_deep2jpaf7xf5wvozkm4xs8pzhvlqa8ka6j5efu4k5dgp3t.jpg",
+   "img/aqmga8s7095qw3zxfbeir85wvktiefzz0mof3-und9q3cfuvsa01lo2s0t9hnq0ms7dzmy_45tj6yurwkv1wq3-c.jpg"
+  ]
+ },
+ {
+  "id": "KURTKA-GRAY-20426",
+  "title": "KURTKA GRAY 20426",
+  "article": "20426",
+  "price": "28900 KZT",
+  "color": "gray",
+  "category": "куртки",
+  "description": "",
+  "sizes": [
+   "140",
+   "150",
+   "160",
+   "170",
+   "180",
+   "190"
+  ],
+  "images": [
+   "img/aqntlsfxuipwwf6ovrwhubwlsjb9kjlk7ko7axkfuywu9dvhawybsrduee6_toqfdxp7-4qteevio4crzwfj34nb.jpg",
+   "img/aqpmjl14c-2y2coutx4fmxsqup71v-igrd9juxplewdqo4u_lws2qb3f1qah1vaccivakxzwsfjznda5onpy_erd.jpg"
+  ]
+ },
+ {
+  "id": "RUBASHKA-BLUE-19239",
+  "title": "RUBASHKA BLUE 19239",
+  "article": "19239",
+  "price": "20900 KZT",
+  "color": "blue",
+  "category": "рубашки",
+  "description": "",
+  "sizes": [
+   "140",
+   "150",
+   "160",
+   "170",
+   "180",
+   "190"
+  ],
+  "images": [
+   "img/img-20261020-wa2797.jpg",
+   "img/img-20261020-wa3087.jpg"
+  ]
+ },
+ {
+  "id": "RUBASHKA-BLUE-19239-2",
+  "title": "RUBASHKA BLUE 19239 2",
+  "article": "19239",
+  "price": "20900 KZT",
+  "color": "grey",
+  "category": "рубашки",
+  "description": "",
+  "sizes": [
+   "140",
+   "150",
+   "160",
+   "170",
+   "180",
+   "190"
+  ],
+  "images": [
+   "img/img-20261020-wa8566.jpg",
+   "img/img-20261020-wa2856.jpg"
+  ]
+ },
+ {
+  "id": "RUBASHKA-LIGHT-BLUE-19239",
+  "title": "RUBASHKA LIGHT BLUE 19239",
+  "article": "19239",
+  "price": "20900 KZT",
+  "color": "light blue",
+  "category": "рубашки",
+  "description": "",
+  "sizes": [
+   "140",
+   "150",
+   "160",
+   "170",
+   "180",
+   "190"
+  ],
+  "images": [
+   "img/img-20261020-wa9638.jpg",
+   "img/img-20261020-wa5147.jpg"
+  ]
+ },
+ {
+  "id": "SHTANY-BEIGE-A01",
+  "title": "SHTANY BEIGE A01",
+  "article": "24653",
+  "price": "16200 KZT",
+  "color": "beige",
+  "category": "штаны",
+  "description": "",
+  "sizes": [
+   "140",
+   "150",
+   "160",
+   "170",
+   "180",
+   "190"
+  ],
+  "images": [
+   "img/img-20261029-wa2837.jpg",
+   "img/img-20261029-wa8547.jpg"
+  ]
+ },
+ {
+  "id": "SHTANY-BLACK-A05",
+  "title": "SHTANY BLACK A05",
+  "article": "13190",
+  "price": "14900 KZT",
+  "color": "black",
+  "category": "штаны",
+  "description": "",
+  "sizes": [
+   "140",
+   "150",
+   "160",
+   "170",
+   "180",
+   "190"
+  ],
+  "images": [
+   "img/img-20261029-wa3419.jpg",
+   "img/img-20261029-wa4371.jpg"
+  ]
+ },
+ {
+  "id": "SHTANY-BLACK-A07",
+  "title": "SHTANY BLACK A07",
+  "article": "15448",
+  "price": "15700 KZT",
+  "color": "khaki",
+  "category": "штаны",
+  "description": "",
+  "sizes": [
+   "140",
+   "150",
+   "160",
+   "170",
+   "180",
+   "190"
+  ],
+  "images": [
+   "img/img-20261029-wa4763.jpg",
+   "img/img-20261029-wa6276.jpg"
+  ]
+ },
+ {
+  "id": "SHTANY-GRAY-A02",
+  "title": "SHTANY GRAY A02",
+  "article": "15446",
+  "price": "15700 KZT",
+  "color": "gray",
+  "category": "штаны",
+  "description": "",
+  "sizes": [
+   "140",
+   "150",
+   "160",
+   "170",
+   "180",
+   "190"
+  ],
+  "images": [
+   "img/img-20261029-wa1319.jpg",
+   "img/img-20261029-wa5979.jpg"
+  ]
+ },
+ {
+  "id": "SHTANY-GRAY-A03",
+  "title": "SHTANY GRAY A03",
+  "article": "12698",
+  "price": "19900 KZT",
+  "color": "gray",
+  "category": "штаны",
+  "description": "",
+  "sizes": [
+   "140",
+   "150",
+   "160",
+   "170",
+   "180",
+   "190"
+  ],
+  "images": [
+   "img/img-20261029-wa1771.jpg",
+   "img/img-20261029-wa7022.jpg"
+  ]
+ },
+ {
+  "id": "SHTANY-KHAKI-A08",
+  "title": "SHTANY KHAKI A08",
+  "article": "12698",
+  "price": "19900 KZT",
+  "color": "gray",
+  "category": "штаны",
+  "description": "",
+  "sizes": [
+   "140",
+   "150",
+   "160",
+   "170",
+   "180",
+   "190"
+  ],
+  "images": [
+   "img/img-20261029-wa3970.jpg",
+   "img/img-20261029-wa0059.jpg"
+  ]
+ },
+ {
+  "id": "SHTANY-MULTI-A06",
+  "title": "SHTANY MULTI A06",
+  "article": "12698",
+  "price": "19900 KZT",
+  "color": "black",
+  "category": "штаны",
+  "description": "",
+  "sizes": [
+   "140",
+   "150",
+   "160",
+   "170",
+   "180",
+   "190"
+  ],
+  "images": [
+   "img/img-20261029-wa9312.jpg",
+   "img/img-20261029-wa7810.jpg"
+  ]
+ }
+]

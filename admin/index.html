@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Админка — Detsky Hit</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;background:#fafafa;color:#222;padding:16px}
+h1{font-size:22px}
+.sub{color:#777;font-size:13px;margin:4px 0 16px}
+.card{background:#fff;border:1px solid #e5e5e5;border-radius:12px;padding:16px;margin:12px 0;max-width:1100px}
+label{font-size:12px;font-weight:600;color:#555;display:block;margin:10px 0 4px}
+input[type=text],input[type=number],input[type=tel],textarea,select{width:100%;border:1px solid #ddd;border-radius:8px;padding:9px 12px;font-size:14px;font-family:inherit}
+textarea{min-height:70px;resize:vertical}
+button{cursor:pointer;border-radius:8px;border:1px solid #111;background:#111;color:#fff;padding:10px 18px;font-size:14px;font-weight:600}
+button.ghost{background:#fff;color:#111}
+button.danger{background:#c00;border-color:#c00;color:#fff}
+button.small{padding:6px 12px;font-size:12px}
+.grid{display:grid;grid-template-columns:260px 1fr;gap:16px;max-width:1200px}
+.product-list{max-height:70vh;overflow:auto;border:1px solid #ddd;border-radius:12px;background:#fff}
+.product-item{padding:8px 10px;border-bottom:1px solid #eee;cursor:pointer;display:flex;gap:10px;align-items:center}
+.product-item img{width:48px;height:64px;object-fit:contain;background:#f4f4f4;border-radius:6px}
+.product-item:hover{background:#f5f5f5}
+.product-item.active{background:#e8f0fe;border-left:3px solid #111}
+.photos{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
+.photo{position:relative;width:96px;height:124px;background:#f4f4f4;border:1px solid #ddd;border-radius:8px;overflow:hidden;display:flex;align-items:center;justify-content:center;cursor:grab}
+.photo img{max-width:100%;max-height:100%;object-fit:contain}
+.photo .primary{position:absolute;top:4px;left:4px;background:#111;color:#fff;font-size:10px;padding:2px 6px;border-radius:999px}
+.photo .del{position:absolute;bottom:4px;right:4px;background:rgba(0,0,0,.6);color:#fff;border:0;border-radius:6px;font-size:11px;padding:2px 6px;cursor:pointer}
+.hint{font-size:12px;color:#888;margin-top:6px}
+.sizes{display:flex;gap:8px;flex-wrap:wrap}
+.size-chip{border:1px solid #ddd;background:#fff;border-radius:8px;padding:8px 14px;cursor:pointer;user-select:none}
+.size-chip.active{background:#111;color:#fff;border-color:#111}
+.row{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;align-items:center}
+.ok{color:#0a7}.err{color:#c00}
+.hidden{display:none !important}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.login-wrap{max-width:380px;margin:80px auto}
+.login-card{background:#fff;border:1px solid #ddd;border-radius:16px;padding:28px;box-shadow:0 4px 24px rgba(0,0,0,.06)}
+.topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:10px;flex-wrap:wrap}
+@media(max-width:900px){.grid{grid-template-columns:1fr}.two-col{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<div id="loginScreen" class="login-wrap">
+  <div class="login-card">
+    <h1>Detsky Hit</h1>
+    <p class="sub">Админка магазина</p>
+    <label>Пароль</label>
+    <input type="password" id="pwd" autocomplete="current-password">
+    <div class="row"><button id="loginBtn">Войти</button><span id="loginError" class="err hidden"></span></div>
+  </div>
+</div>
+
+<div id="adminScreen" class="hidden">
+  <div class="topbar">
+    <div><h1>Detsky Hit — Админка</h1><div class="sub">Редактирование товаров и настроек</div></div>
+    <div class="row" style="margin-top:0">
+      <button class="ghost small" id="reloadBtn">Обновить</button>
+      <button class="ghost small" id="openSiteBtn">Открыть сайт</button>
+      <button class="ghost small" id="logoutBtn">Выйти</button>
+    </div>
+  </div>
+
+  <div class="row" style="margin-top:0">
+    <button id="newProductBtn">+ Новая публикация</button>
+    <button class="ghost" id="saveAllBtn">Сохранить всё</button>
+    <span id="saveStatus" class="ok"></span>
+  </div>
+
+  <div class="grid" style="margin-top:12px">
+    <div>
+      <input type="text" id="searchBox" placeholder="Поиск по артикулу / названию">
+      <div class="product-list" id="productList" style="margin-top:8px"></div>
+    </div>
+    <div class="card" id="editorCard">
+      <div id="editorEmpty" class="sub">Выберите товар слева</div>
+      <div id="editorForm" class="hidden">
+        <div class="topbar" style="margin-bottom:6px"><b id="editorTitle"></b><button class="danger small" id="deleteProductBtn">Удалить</button></div>
+        <div class="two-col">
+          <div><label>Артикул *</label><input type="text" id="fArticle"></div>
+          <div><label>Название</label><input type="text" id="fTitle"></div>
+        </div>
+        <div class="two-col">
+          <div><label>Цена</label><input type="text" id="fPrice"></div>
+          <div><label>Категория</label>
+            <select id="fCategory">
+              <option value="куртки">Куртки</option>
+              <option value="худи">Свитшоты</option>
+              <option value="рубашки">Рубашки</option>
+              <option value="штаны">Штаны</option>
+            </select>
+          </div>
+        </div>
+        <label style="margin-top:10px">Размеры</label>
+        <div class="sizes" id="sizesBox"></div>
+        <label style="margin-top:10px">Описание</label>
+        <textarea id="fDescription"></textarea>
+        <label style="margin-top:10px">Фото (1–5): первое — главное. Перетащите для порядка.</label>
+        <div class="photos" id="photoRow"></div>
+        <div class="row">
+          <label class="ghost" style="cursor:pointer;padding:8px 14px;border:1px solid #111;border-radius:8px">+ Добавить фото<input type="file" id="addPhotoInput" accept="image/*" multiple hidden></label>
+          <span class="hint" id="photoHint">Фото хранятся на сайте (img/)</span>
+        </div>
+        <div class="row"><button id="saveProductBtn">Сохранить товар</button><span id="productStatus" class="ok"></span></div>
+      </div>
+
+      <div style="border-top:1px solid #eee;margin:16px 0;padding-top:16px">
+        <h2 style="font-size:16px">Настройки сайта</h2>
+        <div class="two-col">
+          <div><label>Название магазина</label><input type="text" id="sName"></div>
+          <div><label>Подзаголовок</label><input type="text" id="sTagline"></div>
+        </div>
+        <label>Bio</label><textarea id="sBio"></textarea>
+        <div class="two-col">
+          <div><label>Адрес</label><input type="text" id="sAddress"></div>
+          <div><label>Город</label><input type="text" id="sCity"></div>
+        </div>
+        <div class="two-col">
+          <div><label>Часы работы</label><input type="text" id="sHours"></div>
+          <div><label>WhatsApp</label><input type="tel" id="sWhatsapp"></div>
+        </div>
+        <label>Текст кнопки WhatsApp</label><input type="text" id="sButtonWa">
+        <div class="row"><button id="saveSettingsBtn">Сохранить настройки</button><span id="settingsStatus" class="ok"></span></div>
+        <hr style="border:none;border-top:1px solid #eee;margin:16px 0">
+        <label>Сменить пароль</label><input type="password" id="newPwd" placeholder="Новый пароль">
+        <p class="hint">Пароль хранится в настройках Netlify, применится при следующем деплое.</p>
+        <div class="row"><button id="forgotPwdBtn" class="ghost small">Инструкция по смене пароля</button></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const SIZES = ['140','146','152','164','170','176','180'];
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const $ = id => document.getElementById(id);
+let PASSWORD = null;
+let PRODUCTS = [];
+let SETTINGS = {};
+let currentId = null;
+let dragEl = null;
+
+const API = '/.netlify/functions/catalog';
+const PWD_KEY = 'detskyhit_admin_pwd';
+
+$('loginBtn').onclick = async () => {
+  const err = $('loginError'); err.classList.add('hidden');
+  const pwd = $('pwd').value; if (!pwd){ err.textContent = 'Введите пароль'; err.classList.remove('hidden'); return; }
+  PASSWORD = pwd;
+  try {
+    const r = await fetch(API);
+    if (!r.ok) throw new Error('Нет ответа от сервера');
+    const data = await r.json();
+    PRODUCTS = data.products; SETTINGS = data.settings || {};
+    sessionStorage.setItem(PWD_KEY, pwd);
+    openAdmin();
+    $('pwd').value = '';
+  } catch(e) {
+    err.textContent = 'Ошибка подключения'; err.classList.remove('hidden');
+  }
+};
+
+$('logoutBtn').onclick = () => { sessionStorage.removeItem(PWD_KEY); PASSWORD=null; $('adminScreen').classList.add('hidden'); $('loginScreen').classList.remove('hidden'); };
+$('openSiteBtn').onclick = () => window.open('/', '_blank');
+$('reloadBtn').onclick = () => location.reload();
+
+async function saveAll(){
+  const status = $('saveStatus'); status.textContent = 'Сохраняю…'; status.style.color='#555';
+  const r = await fetch(API, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ password: PASSWORD, products: PRODUCTS, settings: SETTINGS }) });
+  const d = await r.json();
+  if (!r.ok || d.error){ status.textContent = 'Ошибка: ' + (d.error || r.status); status.style.color='#c00'; return; }
+  status.textContent = 'Сохранено ✓'; status.style.color='#0a7';
+}
+$('saveAllBtn').onclick = saveAll;
+
+function renderList(){
+  const q = $('searchBox').value.toLowerCase().trim();
+  $('productList').innerHTML = PRODUCTS.filter(p => !q || (p.article + ' ' + (p.title||'')).toLowerCase().includes(q))
+    .map(p => `<div class="product-item ${p.id===currentId?'active':''}" data-id="${esc(p.id)}"><img src="${esc(p.images?.[0]||'')}"><div><div>${esc(p.title||p.id)}</div><div style="font-size:12px;color:#777">арт. ${esc(p.article)} · ${esc(p.price||'—')}</div></div></div>`).join('') || '<p style="padding:16px;color:#999">Ничего не найдено</p>';
+}
+$('searchBox').addEventListener('input', renderList);
+$('productList').addEventListener('click', e => {
+  const item = e.target.closest('.product-item'); if(!item) return;
+  currentId = item.dataset.id; openProduct(currentId);
+});
+
+function openProduct(id){
+  currentId = id;
+  const p = PRODUCTS.find(x => x.id === id); if(!p) return;
+  $('editorEmpty').classList.add('hidden'); $('editorForm').classList.remove('hidden');
+  $('editorTitle').textContent = p.title || p.id;
+  $('fArticle').value = p.article || ''; $('fTitle').value = p.title || ''; $('fPrice').value = p.price || '';
+  $('fCategory').value = p.category || 'штаны'; $('fDescription').value = p.description || '';
+  renderSizes(p.sizes || []); renderPhotos(p.images || []); renderList();
+}
+function renderSizes(sizes){ $('sizesBox').innerHTML = SIZES.map(s => `<button type="button" class="size-chip ${sizes.includes(s)?'active':''}" data-s="${s}">${s}</button>`).join(''); }
+$('sizesBox').addEventListener('click', e => { const b = e.target.closest('.size-chip'); if(!b) return; b.classList.toggle('active'); });
+function renderPhotos(images){
+  $('photoRow').innerHTML = images.map((src, i) => `<div class="photo ${i===0?'is-primary':''}" data-src="${esc(src)}" draggable="true">${i===0 ? '<span class="primary">Главное</span>' : ''}<img src="${esc(src)}" alt=""><button class="del" data-src="${esc(src)}">×</button></div>`).join('');
+  $('photoHint').textContent = 'Фото: ' + images.length + '/5 · первое — главное · перетаскивайте для изменения порядка';
+}
+$('photoRow').addEventListener('dragstart', e => { const ph = e.target.closest('.photo'); if(!ph) return; dragEl = ph; ph.style.opacity='.5'; });
+$('photoRow').addEventListener('dragover', e => { e.preventDefault(); const ph = e.target.closest('.photo'); if(!ph || ph===dragEl) return; const before = (e.clientX - ph.getBoundingClientRect().left) < ph.offsetWidth/2; ph.parentNode.insertBefore(dragEl, before ? ph : ph.nextSibling); refreshPrimaryBadge(); });
+$('photoRow').addEventListener('dragend', () => { if(dragEl) dragEl.style.opacity='1'; dragEl=null; refreshPrimaryBadge(); });
+function refreshPrimaryBadge(){
+  [...$('photoRow').querySelectorAll('.photo')].forEach((el,i) => {
+    let badge = el.querySelector('.primary');
+    if (i === 0 && !badge){ badge = document.createElement('span'); badge.className='primary'; badge.textContent='Главное'; el.appendChild(badge); }
+    if (i !== 0 && badge) badge.remove();
+  });
+}
+$('photoRow').addEventListener('click', e => {
+  const del = e.target.closest('.del'); if(!del) return;
+  const src = del.dataset.src;
+  const p = PRODUCTS.find(x => x.id === currentId);
+  p.images = p.images.filter(x => x !== src); renderPhotos(p.images);
+});
+$('addPhotoInput').addEventListener('change', e => {
+  const p = PRODUCTS.find(x => x.id === currentId); if(!p) return;
+  for (const f of e.target.files) {
+    if (p.images.length >= 5) break;
+    p.images.push('img/' + f.name.toLowerCase().replace(/\s+/g,'-'));
+  }
+  renderPhotos(p.images);
+});
+$('saveProductBtn').onclick = () => {
+  const article = $('fArticle').value.trim();
+  if (!article){ alert('Нужен артикул'); return; }
+  const p = PRODUCTS.find(x => x.id === currentId);
+  p.article = article; p.title = $('fTitle').value.trim(); p.price = $('fPrice').value.trim();
+  p.category = $('fCategory').value; p.description = $('fDescription').value;
+  p.sizes = [...$('sizesBox').querySelectorAll('.size-chip.active')].map(b => b.dataset.s);
+  p.images = [...$('photoRow').querySelectorAll('.photo')].map(x => x.dataset.src);
+  $('productStatus').textContent = 'Сохранено ✓';
+  renderList();
+};
+$('deleteProductBtn').onclick = () => {
+  if (!currentId) return; if (!confirm('Удалить товар?')) return;
+  PRODUCTS = PRODUCTS.filter(x => x.id !== currentId);
+  currentId = null; $('editorForm').classList.add('hidden'); $('editorEmpty').classList.remove('hidden'); renderList();
+};
+$('newProductBtn').onclick = () => {
+  const id = 'NEW-' + Date.now().toString(36).toUpperCase();
+  PRODUCTS.push({ id, article: '', title: 'Новая публикация', category: 'штаны', price: '', color: '', description: '', sizes: SIZES.slice(), images: [] });
+  currentId = id; renderList(); openProduct(id);
+};
+
+function renderSettings(){
+  $('sName').value = SETTINGS.name || ''; $('sTagline').value = SETTINGS.tagline || ''; $('sBio').value = SETTINGS.bio || '';
+  $('sAddress').value = SETTINGS.address || ''; $('sCity').value = SETTINGS.city || ''; $('sHours').value = SETTINGS.hours || '';
+  $('sWhatsapp').value = SETTINGS.whatsapp || ''; $('sButtonWa').value = SETTINGS.buttonWhatsapp || '';
+}
+$('saveSettingsBtn').onclick = async () => {
+  SETTINGS = { ...SETTINGS, name:$('sName').value, tagline:$('sTagline').value, bio:$('sBio').value, address:$('sAddress').value, city:$('sCity').value, hours:$('sHours').value, whatsapp:$('sWhatsapp').value.replace(/\D/g,''), buttonWhatsapp:$('sButtonWa').value };
+  $('settingsStatus').textContent = 'Сохраняю…';
+  const r = await fetch(API, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ password: PASSWORD, products: PRODUCTS, settings: SETTINGS }) });
+  $('settingsStatus').textContent = r.ok ? 'Сохранено ✓' : 'Ошибка';
+};
+$('forgotPwdBtn').onclick = () => alert('Пароль хранится в переменной DETS_ADMIN_PASSWORD в Netlify. Чтобы сменить — Project configuration → Environment variables.');
+
+function openAdmin(){
+  $('loginScreen').classList.add('hidden');
+  $('adminScreen').classList.remove('hidden');
+  renderList(); renderSettings();
+}
+// auto-login if password stored in session
+const saved = sessionStorage.getItem(PWD_KEY);
+if (saved){ PASSWORD = saved; fetch(API).then(r => r.json()).then(d => { PRODUCTS = d.products; SETTINGS = d.settings || {}; openAdmin(); }).catch(()=>{}); }
+</script>
+</body>
+</html>
