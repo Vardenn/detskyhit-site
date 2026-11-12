@@ -102,8 +102,8 @@ button.small{padding:6px 12px;font-size:12px}
       <div class="row"><button id="saveSettingsBtn">Сохранить настройки</button><span id="settingsStatus" class="ok"></span></div>
       <hr style="border:none;border-top:1px solid #eee;margin:14px 0">
       <label>Сменить пароль</label><input type="password" id="newPwd" placeholder="Новый пароль">
-      <p class="hint">Пароль хранится в Netlify (Environment variables → DETS_ADMIN_PASSWORD). После смены — действо только после следующего деплоя.</p>
-      <p class="hint"><a href="https://app.netlify.com/projects/detskyhit/settings/env" target="_blank" rel="noopener" style="color:#111">Открыть переменные окружения в Netlify</a></p>
+      <p class="hint">Пароль хранится в Cloudflare Workers (secret <code>DETS_ADMIN_PASSWORD</code>). После смены секрета действует сразу, деплой не нужен.</p>
+      <p class="hint"><a href="https://dash.cloudflare.com/6e82813408929814383baa75eb22fbe3/workers/services/view/detskyhit/edit?environment=production" target="_blank" rel="noopener" style="color:#111">Открыть настройки Worker в Cloudflare</a></p>
     </div>
   </div>
 </div>

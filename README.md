@@ -1,43 +1,65 @@
 # Detsky Hit — сайт
 
-Статический сайт в стиле Instagram: каталог товаров, избранное, WhatsApp-кнопка, админка.
+Публичный сайт в стиле Instagram: сетка товаров, избранное (❤️, localStorage), WhatsApp-кнопка,
+админка. Хостинг — **Cloudflare Workers** (статика + Worker), база — **Supabase**.
 
 ## Структура
-- `index.html` — публичный сайт (читает `/.netlify/functions/catalog`)
+
+- `index.html` — публичный сайт (читает каталог из `/api/catalog`)
 - `admin/index.html` — вход по паролю + редактирование товаров и настроек
-- `img/` — фото товаров
-- `netlify/functions/catalog.js` — API (чтение/запись в Supabase)
-- `schema.sql` — таблицы `products` и `settings` для Supabase
+- `img/` — фото товаров, `thumbs/` — миниатюры для сетки
+- `worker.js` — Cloudflare Worker: отдаёт статику и API `/api/catalog` (запись/чтение Supabase)
+- `wrangler.jsonc` — конфиг Worker'а (assets + модуль)
+- `schema.sql`, `seed.sql` — схема и наполнение таблиц `products` и `settings` в Supabase
+- `netlify/functions/catalog.js` — старая версия API для Netlify (запасной вариант)
 
-## Настройка (один раз)
+## Адреса
 
-### 1. Supabase
-1. Зарегистрируйтесь на https://supabase.com → «New project» (бесплатно).
-2. Запомните **Project URL** и **anon/service key**.
-3. В SQL Editor вставьте и выполните `schema.sql`.
-4. В Table editor проверьте, что появились таблицы `products` (36 строк) и `settings`.
+- Сайт: https://detskyhit.detskyhit-site.workers.dev/
+- Админка: https://detskyhit.detskyhit-site.workers.dev/admin/
+- API: https://detskyhit.detskyhit-site.workers.dev/api/catalog
+  (алиас `/.netlify/functions/catalog` тоже работает)
 
-### 2. GitHub
-1. На github.com создайте пустой репозиторий (например, `detskyhit-site`).
-2. В папке проекта выполните:
-   ```
-   git init
-   git add .
-   git commit -m "init"
-   git branch -M main
-   git remote add origin https://github.com/<ваш-логин>/detskyhit-site.git
-   git push -u origin main
-   ```
+## Как обновить сайт
 
-### 3. Netlify
-1. Project configuration → Environment variables — добавьте:
-   - `SUPABASE_URL` = ваш Project URL
-   - `SUPABASE_SERVICE_ROLE_KEY` = **service_role key** (секретный, НЕ anon key)
-   - `DETS_ADMIN_PASSWORD` = новый пароль админки (по умолчанию detskyhit2026)
-2. Build & deploy → Link repository → выберите `detskyhit-site` → Branch `main`.
-3. Deploy. После этого каждый `git push` автоматически обновляет сайт.
+```cmd
+cd "C:\Users\user\Documents\Проект по умолчанию\insta-catalog\detskyhit-site"
+npx wrangler deploy
+```
 
-## Как админка работает
-- `detskyhit.netlify.app/admin/` → вход по паролю
-- правите товары/настройки → «Сохранить» → изменения записываются в Supabase
-- сайт сам подхватывает новые данные без редеплоя
+Перед деплоем закоммитьте изменения:
+
+```cmd
+git add -A && git commit -m "..." && git push origin main
+```
+
+## Переменные окружения (секреты Cloudflare Workers)
+
+Задаются в Worker'е `detskyhit` (Settings → Variables and Secrets) или через CLI:
+
+```cmd
+npx wrangler secret put SUPABASE_URL --name detskyhit
+npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY --name detskyhit
+npx wrangler secret put DETS_ADMIN_PASSWORD --name detskyhit
+```
+
+Пароль админки: `DETS_ADMIN_PASSWORD` (сейчас `Detskyhit2026@`). После смены секрета он действует сразу.
+
+## Supabase
+
+- Project URL: `https://pprsjobspvnktbnxeioe.supabase.co`
+- Таблицы: `products`, `settings` (схема в `schema.sql`)
+
+## Как работает админка
+
+1. `/admin/` → вход по паролю (проверка пароля на сервере, POST `/api/catalog` с `{password}`).
+2. Правите товары/настройки → «Сохранить товар» / «Сохранить всё» → данные пишутся в Supabase.
+3. Сайт сам подхватывает новые данные без редеплоя.
+
+## GitHub
+
+Репозиторий: https://github.com/Vardenn/detskyhit-site (ветка `main`).
+
+Для автодеплоя при пуше можно подключить Cloudflare Workers Builds:
+dash.cloudflare.com → Workers & Pages → `detskyhit` → Settings → Builds → Connect to GitHub →
+репозиторий `Vardenn/detskyhit-site`, ветка `main`, команда сборки пустая, команда деплоя `npx wrangler deploy`.
