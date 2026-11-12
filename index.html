@@ -236,5 +236,6 @@ fetch('/api/catalog')
   .then(d => { PRODUCTS = d.products || []; SETTINGS = { ...SETTINGS, ...(d.settings || {}) }; renderTop(); renderChips(); renderGrid(); favBadgeUpdate(); })
   .catch(() => { document.getElementById('grid').innerHTML = '<div class="empty"><b>Каталог временно недоступен</b>Попробуйте обновить страницу</div>'; });
 </script>
+<!-- Cloudflare Web Analytics --><script type='module' src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "4924366f5d8c4b538ddd5be418c11a71"}'></script><!-- End Cloudflare Web Analytics -->
 </body>
 </html>
