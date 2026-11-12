@@ -150,6 +150,7 @@ button.small{padding:6px 12px;font-size:12px}
 const SIZES = ['140','146','152','164','170','176','180'];
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const $ = id => document.getElementById(id);
+const imgUrl = u => /^https?:\/\//i.test(u) ? u : '/' + u;
 let PASSWORD = null;
 let PRODUCTS = [];
 let SETTINGS = {};
@@ -191,7 +192,7 @@ $('saveAllBtn').onclick = saveAll;
 function renderList(){
   const q = $('searchBox').value.toLowerCase().trim();
   $('productList').innerHTML = (PRODUCTS || []).filter(p => !q || (p.article + ' ' + (p.title||'')).toLowerCase().includes(q))
-    .map(p => `<div class="product-item ${p.id===currentId?'active':''}" data-id="${esc(p.id)}"><img src="/${esc(p.images?.[0]||'')}"><div><div>${esc(p.title||p.id)}</div><div style="font-size:12px;color:#777">арт. ${esc(p.article)} · ${esc(p.price||'—')}</div></div></div>`).join('') || '<p style="padding:16px;color:#999">Ничего не найдено</p>';
+    .map(p => `<div class="product-item ${p.id===currentId?'active':''}" data-id="${esc(p.id)}"><img src="${esc(imgUrl(p.images?.[0]||''))}"><div><div>${esc(p.title||p.id)}</div><div style="font-size:12px;color:#777">арт. ${esc(p.article)} · ${esc(p.price||'—')}</div></div></div>`).join('') || '<p style="padding:16px;color:#999">Ничего не найдено</p>';
 }
 $('searchBox').addEventListener('input', renderList);
 $('productList').addEventListener('click', e => {
@@ -217,7 +218,7 @@ function closeModal(){
 function renderSizes(sizes){ $('sizesBox').innerHTML = SIZES.map(s => `<button type="button" class="size-chip ${sizes.includes(s)?'active':''}" data-s="${s}">${s}</button>`).join(''); }
 $('sizesBox').addEventListener('click', e => { const b = e.target.closest('.size-chip'); if(!b) return; b.classList.toggle('active'); });
 function renderPhotos(images){
-  $('photoRow').innerHTML = (images||[]).map((src, i) => `<div class="photo ${i===0?'is-primary':''}" data-src="/${esc(src)}" draggable="true">${i===0 ? '<span class="primary">Главное</span>' : ''}<img src="/${esc(src)}" alt=""><button class="del" data-src="/${esc(src)}">×</button></div>`).join('');
+  $('photoRow').innerHTML = (images||[]).map((src, i) => `<div class="photo ${i===0?'is-primary':''}" data-src="${esc(src)}" draggable="true">${i===0 ? '<span class="primary">Главное</span>' : ''}<img src="${esc(imgUrl(src))}" alt=""><button class="del" data-src="${esc(src)}">×</button></div>`).join('');
   if (images.length === 0){ $('photoRow').innerHTML = '<span class="hint">Фото нет. Добавьте.</span>'; }
 }
 $('photoRow').addEventListener('dragstart', e => { const ph = e.target.closest('.photo'); if(!ph) return; dragEl = ph; ph.style.opacity='.5'; });
@@ -232,17 +233,57 @@ function refreshPrimaryBadge(){
 }
 $('photoRow').addEventListener('click', e => {
   const del = e.target.closest('.del'); if(!del) return;
-  const src = del.dataset.src.replace(/^\//, '');
+  const src = del.dataset.src;
   const p = PRODUCTS.find(x => x.id === currentId); if(!p) return;
   p.images = p.images.filter(x => x !== src); renderPhotos(p.images);
 });
-$('addPhotoInput').addEventListener('change', e => {
+$('addPhotoInput').addEventListener('change', async e => {
   const p = PRODUCTS.find(x => x.id === currentId); if(!p) return;
-  for (const f of e.target.files) {
+  const files = [...e.target.files];
+  e.target.value = '';
+  const status = $('productStatus');
+  const shrinkToBlob = file => new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const im = new Image();
+    im.onload = () => {
+      const scale = Math.min(1, 2048 / Math.max(im.width, im.height));
+      const w = Math.max(1, Math.round(im.width * scale));
+      const h = Math.max(1, Math.round(im.height * scale));
+      const cv = document.createElement('canvas');
+      cv.width = w; cv.height = h;
+      cv.getContext('2d').drawImage(im, 0, 0, w, h);
+      URL.revokeObjectURL(url);
+      cv.toBlob(b => b ? resolve(b) : reject(new Error('encode')), 'image/jpeg', 0.9);
+    };
+    im.onerror = reject;
+    im.src = url;
+  });
+  const blobToDataUrl = blob => new Promise((resolve, reject) => {
+    const fr = new FileReader();
+    fr.onload = () => resolve(String(fr.result));
+    fr.onerror = reject;
+    fr.readAsDataURL(blob);
+  });
+  for (const f of files) {
     if (p.images.length >= 5) break;
-    p.images.push('img/' + f.name.toLowerCase().replace(/\s+/g,'-'));
+    status.textContent = 'Загружаю «' + f.name + '»…'; status.style.color = '#555';
+    try {
+      const blob = await shrinkToBlob(f);
+      const dataUrl = await blobToDataUrl(blob);
+      const r = await fetch('/api/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: PASSWORD, filename: f.name, contentType: 'image/jpeg', data: dataUrl }),
+      });
+      const d = await r.json();
+      if (r.ok && d.ok && d.url) { p.images.push(d.url); }
+      else { status.textContent = 'Ошибка: ' + (d.error || r.status); status.style.color = '#c00'; }
+    } catch (err) {
+      status.textContent = 'Ошибка загрузки фото'; status.style.color = '#c00';
+    }
+    renderPhotos(p.images);
   }
-  renderPhotos(p.images);
+  status.textContent = 'Фото загружено ✓ Нажмите «Сохранить товар»'; status.style.color = '#0a7';
 });
 $('saveProductBtn').onclick = () => {
   const article = $('fArticle').value.trim();
@@ -251,7 +292,7 @@ $('saveProductBtn').onclick = () => {
   p.article = article; p.title = $('fTitle').value.trim(); p.price = $('fPrice').value.trim();
   p.category = $('fCategory').value; p.description = $('fDescription').value;
   p.sizes = [...$('sizesBox').querySelectorAll('.size-chip.active')].map(b => b.dataset.s);
-  p.images = [...$('photoRow').querySelectorAll('.photo')].map(x => x.dataset.src.replace(/^\//, ''));
+  p.images = [...$('photoRow').querySelectorAll('.photo')].map(x => x.dataset.src);
   $('productStatus').textContent = 'Сохраняю…'; $('productStatus').style.color='#555';
   const status = $('productStatus');
   fetch(API, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ password: PASSWORD, products: PRODUCTS, settings: SETTINGS }) })

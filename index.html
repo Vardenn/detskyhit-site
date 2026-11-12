@@ -150,7 +150,7 @@ function renderChips(){
 let curCat = 'all';
 const gridEl = $('grid');
 function filtered(){ return curCat === 'all' ? PRODUCTS : PRODUCTS.filter(p => p.category === curCat); }
-function thumbOf(p){ if(!p) return ''; const base=p.split('/').pop(); return 'thumbs/' + base.replace(/\.(jpg|jpeg|png|webp)$/i, '.jpg'); }
+function thumbOf(p){ if(!p) return ''; if(/^https?:\/\//i.test(p)) return p; const base=p.split('/').pop(); return 'thumbs/' + base.replace(/\.(jpg|jpeg|png|webp)$/i, '.jpg'); }
 function renderGrid(){
   const list = filtered();
   const favs = getFavs();

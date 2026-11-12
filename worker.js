@@ -2,6 +2,7 @@
 // - Статические файлы сайта: отдаются из assets (binding ASSETS)
 // - /api/catalog и /.netlify/functions/catalog: читает/пишет каталог в Supabase
 const CATALOG_PATHS = new Set(['/api/catalog', '/.netlify/functions/catalog']);
+const UPLOAD_PATHS = new Set(['/api/upload']);
 
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -93,11 +94,54 @@ async function handleCatalog(request, env) {
   return json({ error: 'Method' }, 405);
 }
 
+async function handleUpload(request, env) {
+  if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY) {
+    return json({ error: 'Сервер не настроен: SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY' }, 500);
+  }
+  if (request.method !== 'POST') return json({ error: 'Method' }, 405);
+  let body = {};
+  try { body = await request.json(); } catch { body = {}; }
+  if (String(body.password || '') !== env.DETS_ADMIN_PASSWORD) return json({ error: 'Неверный пароль' }, 401);
+
+  const ct = String(body.contentType || 'image/jpeg');
+  if (!/^image\/(jpeg|jpg|png|webp)$/i.test(ct)) return json({ error: 'Только JPEG/PNG/WebP' }, 400);
+  const b64 = String(body.data || '').replace(/^data:[^,]+,/, '');
+  if (!b64) return json({ error: 'Нет данных изображения' }, 400);
+
+  let bytes;
+  try { bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0)); } catch { return json({ error: 'Повреждённый файл' }, 400); }
+  if (bytes.length > 4 * 1024 * 1024) return json({ error: 'Фото больше 4 МБ' }, 413);
+
+  const ext = ct.includes('png') ? 'png' : ct.includes('webp') ? 'webp' : 'jpg';
+  const stem = String(body.filename || 'photo')
+    .toLowerCase()
+    .replace(/\.[a-z0-9]+$/, '')
+    .replace(/[^a-z0-9._-]+/g, '-')
+    .replace(/^-+|-+$/g, '') || 'photo';
+  const key = `products/${Date.now().toString(36)}-${stem}.${ext}`;
+
+  const res = await fetch(`${env.SUPABASE_URL}/storage/v1/object/product-images/${key}`, {
+    method: 'POST',
+    headers: {
+      apikey: env.SUPABASE_SERVICE_ROLE_KEY,
+      Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
+      'Content-Type': ct,
+      'x-upsert': 'true',
+    },
+    body: bytes,
+  });
+  if (!res.ok) return json({ error: 'Не удалось сохранить изображение', details: await res.text() }, 502);
+  return json({ ok: true, url: `${env.SUPABASE_URL}/storage/v1/object/public/product-images/${key}` });
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     if (CATALOG_PATHS.has(url.pathname)) {
       return handleCatalog(request, env);
+    }
+    if (UPLOAD_PATHS.has(url.pathname)) {
+      return handleUpload(request, env);
     }
     return env.ASSETS.fetch(request);
   },
