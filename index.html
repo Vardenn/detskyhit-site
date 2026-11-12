@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ru" data-theme="dark">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -16,58 +16,79 @@
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"ClothingStore","name":"Detsky Hit","telephone":"+7 701 530-04-91","address":{"@type":"PostalAddress","addressLocality":"Караганда","streetAddress":"ТД Таир 3, 2 этаж","addressCountry":"KZ"},"url":"https://detskyhit.detskyhit-site.workers.dev/","description":"Детская одежда 11–15 лет. Караганда, ТД Таир 3, 2 этаж. Доставка по всему Казахстану."}</script>
-<meta name="theme-color" content="#ffffff">
-<script>try{document.documentElement.dataset.theme = localStorage.getItem('dh-theme') || 'light';}catch(e){}</script>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23111'/%3E%3Ctext x='32' y='42' font-family='Arial' font-size='26' font-weight='700' fill='%23fff' text-anchor='middle'%3ED%7CH%3C/text%3E%3C/svg%3E">
+<meta name="theme-color" content="#000000">
+<link rel="icon" type="image/png" href="logo-favicon.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<script>try{document.documentElement.dataset.theme = localStorage.getItem('dh-theme') || 'dark';}catch(e){}</script>
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 :root,[data-theme="light"]{
   --bg:#ffffff; --shell:#ffffff; --top:#ffffff; --surface:#ffffff; --softer:#f4f4f4;
   --border:#e5e5e5; --chip-border:#d9d9d9; --text:#111111; --muted:#888888; --muted2:#666666; --desc:#444444; --hint:#999999;
   --chip-bg:#ffffff; --chip-active-bg:#111111; --chip-active-text:#ffffff; --chip-active-border:#111111;
-  --avatar-bg:#111111; --avatar-text:#ffffff; --fav-soft:#ffffff;
+  --avatar-border:#161616; --tile-bg:#ffffff;
 }
 [data-theme="gray"]{
   --bg:#d8d8dc; --shell:#d8d8dc; --top:#d8d8dc; --surface:#e9e9ed; --softer:#c1c1c6;
   --border:#b9b9bf; --chip-border:#adadb3; --text:#17171a; --muted:#4a4a50; --muted2:#333338; --desc:#26262c; --hint:#55555c;
   --chip-bg:#e4e4e8; --chip-active-bg:#17171a; --chip-active-text:#f2f2f4; --chip-active-border:#17171a;
-  --avatar-bg:#17171a; --avatar-text:#f2f2f4; --fav-soft:#e9e9ed;
+  --avatar-border:#17171a; --tile-bg:#ffffff;
 }
 [data-theme="dark"]{
   --bg:#000000; --shell:#000000; --top:#000000; --surface:#111111; --softer:#1c1c1e;
   --border:#262626; --chip-border:#333333; --text:#f5f5f5; --muted:#a8a8a8; --muted2:#cfcfcf; --desc:#d0d0d0; --hint:#8a8a8a;
   --chip-bg:#161616; --chip-active-bg:#f5f5f5; --chip-active-text:#111111; --chip-active-border:#f5f5f5;
-  --avatar-bg:#f5f5f5; --avatar-text:#111111; --fav-soft:#111111;
+  --avatar-border:#1c1c1e; --tile-bg:#ffffff;
 }
 html,body{margin:0;padding:0}
 body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;overflow-x:hidden}
 .shell{max-width:480px;margin:0 auto;min-height:100dvh;background:var(--shell);position:relative}
 @media(min-width:520px){.shell{border-left:1px solid var(--border);border-right:1px solid var(--border)}}
-.theme-strip{display:flex;align-items:center;justify-content:flex-start;height:26px;padding:0 14px;background:var(--top);border-bottom:1px solid var(--border);border:0;border-bottom:1px solid var(--border);width:100%;font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);cursor:pointer;font-family:inherit;user-select:none;text-align:left}
+.theme-strip{display:flex;align-items:center;height:26px;padding:0 14px;background:var(--top);width:100%;border:0;border-bottom:1px solid var(--border);font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);cursor:pointer;font-family:inherit;text-align:left;user-select:none}
 .theme-strip:hover{color:var(--text)}
-.top{position:sticky;top:0;z-index:30;background:var(--top);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:14px 16px;gap:8px}
-.brand{font-weight:800;font-size:19px;letter-spacing:-.02em;line-height:1.1}
-.brand small{display:block;font-weight:500;font-size:10px;letter-spacing:.18em;color:var(--muted);text-transform:uppercase}
-.top-right{display:flex;gap:8px;align-items:center}
-.icon-btn,.top-wa{display:flex;align-items:center;gap:6px;border:1px solid var(--text);border-radius:999px;padding:8px 12px;font-size:13px;font-weight:600;color:var(--text);background:var(--surface);cursor:pointer;text-decoration:none;white-space:nowrap}
-.top-wa{border-color:#25d366;background:#25d366;color:#111;border:none}
-.fav-badge{position:absolute;top:-6px;right:-6px;background:#c00;color:#fff;font-size:10px;border-radius:999px;min-width:18px;height:18px;display:flex;align-items:center;justify-content:center;padding:0 4px;font-weight:700}
-.fav-wrap{position:relative}
-.profile{display:flex;gap:18px;padding:18px 16px 14px;align-items:center}
-.avatar{width:84px;height:84px;border-radius:50%;background:var(--avatar-bg);color:var(--avatar-text);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:22px;flex:none}
-.pstats{display:flex;gap:22px}
-.pstat b{display:block;font-size:16px}
-.pstat span{font-size:12px;color:var(--muted2)}
-.pdesc{padding:0 16px 14px;font-size:13.5px;line-height:1.55;white-space:pre-line;color:var(--text)}
-.chips{position:sticky;top:52px;z-index:25;background:var(--top);border-bottom:1px solid var(--border);display:flex;gap:8px;overflow-x:auto;padding:10px 12px;scrollbar-width:none}
-.chips::-webkit-scrollbar{display:none}
-.chip{flex:none;padding:8px 15px;border:1px solid var(--chip-border);border-radius:999px;background:var(--chip-bg);color:var(--text);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap}
-.chip.active{background:var(--chip-active-bg);color:var(--chip-active-text);border-color:var(--chip-active-border)}
-.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:2px}
-.tile{position:relative;aspect-ratio:1/1;background:var(--softer);border:0;padding:0;cursor:pointer;overflow:hidden}
+.top{position:sticky;top:0;z-index:30;background:var(--top);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:12px 16px;gap:10px}
+.logo-name{display:flex;align-items:center;gap:10px}
+.logo-img{width:32px;height:32px;border-radius:50%;display:block}
+.brand{font-weight:800;font-size:19px;letter-spacing:-.02em}
+.top-right{display:flex;gap:10px;align-items:center}
+.icon-btn,.dots{display:flex;align-items:center;justify-content:center;border:1px solid var(--chip-border);border-radius:50%;width:36px;height:36px;font-size:17px;color:var(--text);background:transparent;cursor:pointer;text-decoration:none}
+.dots{font-weight:800;font-size:20px;line-height:1}
+.fav-badge{position:absolute;top:-5px;right:-5px;background:#c00;color:#fff;font-size:10px;border-radius:999px;min-width:18px;height:18px;display:flex;align-items:center;justify-content:center;padding:0 4px;font-weight:700}
+.fav-wrap{position:relative;display:flex}
+.profile{display:flex;gap:18px;padding:18px 16px 12px;align-items:center}
+.avatar{width:96px;height:96px;border-radius:50%;border:2px solid var(--avatar-border);flex:none;object-fit:cover;background:#000}
+.pstats{display:flex;gap:20px}
+.pstat b{display:block;font-size:17px;letter-spacing:-.01em}
+.pstat span{font-size:11.5px;color:var(--muted2)}
+.pname{padding:2px 16px 0;font-weight:800;font-size:16px;letter-spacing:-.01em}
+.pdesc{padding:6px 16px 0;font-size:13.5px;line-height:1.62;white-space:pre-line;color:var(--text)}
+.pdesc .grey{color:var(--muted2)}
+.pdesc .link{color:#0A84FF;text-decoration:none}
+.collab{display:flex;align-items:center;gap:10px;padding:12px 16px 2px}
+.stack{display:flex}
+.stack img{width:34px;height:34px;border-radius:50%;object-fit:cover;border:2px solid var(--shell);background:#222;margin-left:-10px}
+.stack img:first-child{margin-left:0}
+.collab span{font-size:12.5px;color:var(--muted2)}
+.cta{display:flex;gap:8px;padding:10px 16px 16px;align-items:stretch}
+.btn{flex:1;display:flex;align-items:center;justify-content:center;border:0;border-radius:8px;height:35px;padding:0 10px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;text-decoration:none}
+.btn.primary{background:#0A84FF;color:#fff}
+.btn.grey{background:var(--softer);color:var(--text)}
+.btn.icon{flex:0 0 44px;font-size:15px}
+.hlbar{display:flex;gap:16px;overflow-x:auto;padding:12px 16px 16px;border-bottom:1px solid var(--border);scrollbar-width:none}
+.hlbar::-webkit-scrollbar{display:none}
+.hl{display:flex;flex-direction:column;align-items:center;gap:6px;flex:none;cursor:pointer;background:none;border:0;padding:0;font-family:inherit}
+.hl-circle{width:74px;height:74px;border-radius:50%;border:2px solid var(--chip-border);overflow:hidden;display:flex;align-items:center;justify-content:center;background:#f4f4f4}
+.hl-circle img{width:100%;height:100%;object-fit:contain;display:block}
+.hl span{font-size:11.5px;color:var(--text);max-width:84px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hl.active .hl-circle{border-color:var(--text);box-shadow:0 0 0 2px var(--shell),0 0 0 4px var(--text)}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;background:var(--shell)}
+.tile{position:relative;aspect-ratio:4/5;background:var(--tile-bg);border:0;padding:0;cursor:pointer;overflow:hidden}
 .tile img{width:100%;height:100%;object-fit:contain;display:block}
-.tag{position:absolute;left:0;right:0;bottom:0;padding:14px 6px 5px;color:#fff;font-size:11px;font-weight:700;background:linear-gradient(transparent,rgba(0,0,0,.55));text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mocktag{position:absolute;right:6px;bottom:6px;padding:3px 9px;font-size:11.5px;font-weight:700;color:#fff;background:rgba(0,0,0,.62);border-radius:999px}
 .fav-btn-tile{position:absolute;top:6px;right:6px;z-index:2;background:rgba(255,255,255,.88);border:0;border-radius:999px;width:28px;height:28px;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.empty{padding:60px 24px;text-align:center;color:var(--muted)}
+.empty b{display:block;font-size:18px;color:var(--text);margin-bottom:8px}
+.hint-load{padding:80px 16px;text-align:center;color:var(--muted)}
 .viewer{position:fixed;inset:0;z-index:100;background:var(--shell);overflow-y:auto;overscroll-behavior:contain}
 .viewer[hidden]{display:none}
 .close{position:fixed;top:calc(10px + env(safe-area-inset-top));right:12px;z-index:120;width:36px;height:36px;border-radius:50%;background:var(--surface);border:1px solid var(--border);color:var(--text);font-size:15px;cursor:pointer}
@@ -81,12 +102,12 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 .dot{width:6px;height:6px;border-radius:50%;background:var(--border)}
 .dot.on{background:var(--text)}
 .bar{display:flex;align-items:center;gap:18px;padding:13px 16px;border-bottom:1px solid var(--border)}
-.icon-btn{background:none;border:0;padding:0;cursor:pointer;font-size:21px;line-height:1;color:var(--text)}
+.icon-btn2{background:none;border:0;padding:0;cursor:pointer;font-size:21px;line-height:1;color:var(--text)}
 .fav-btn{display:flex;align-items:center;gap:4px}
 .fav-btn .heart{font-size:22px}
 .fav-btn.fav .heart{color:#c00}
 .cnt{font-size:13px;font-weight:600}
-.direct{margin-left:auto;background:#25d366;color:#111;border:0;border-radius:999px;padding:9px 16px;font-size:13px;font-weight:700;text-decoration:none;white-space:nowrap}
+.direct{margin-left:auto;background:#25d366;color:#111;border:0;border-radius:999px;padding:10px 16px;font-size:13px;font-weight:700;text-decoration:none;white-space:nowrap;display:flex;align-items:center;gap:6px}
 .cap{padding:13px 16px 20px}
 .t{font-weight:700;font-size:15px}
 .p{font-size:15px;font-weight:700;margin-top:6px}
@@ -101,27 +122,78 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 .price{font-weight:700;margin-top:4px}
 .fav-remove{border:0;background:var(--softer);color:var(--text);border-radius:8px;padding:6px 10px;font-size:12px;cursor:pointer;margin-top:6px}
 .fav-back{border:1px solid var(--text);background:var(--surface);color:var(--text);border-radius:999px;padding:10px 24px;margin-top:16px;cursor:pointer;font-weight:600}
-.empty{padding:60px 24px;text-align:center;color:var(--muted)}
-.empty b{display:block;font-size:18px;color:var(--text);margin-bottom:8px}
-.hint-load{padding:80px 16px;text-align:center;color:var(--muted)}
+.menu{position:fixed;top:64px;right:12px;z-index:60;background:var(--surface);border:1px solid var(--border);border-radius:14px;min-width:220px;box-shadow:0 14px 40px rgba(0,0,0,.5);overflow:hidden}
+.menu[hidden]{display:none}
+.menu button{display:flex;align-items:center;gap:10px;width:100%;border:0;background:transparent;color:var(--text);font-family:inherit;font-size:14px;font-weight:600;padding:12px 14px;text-align:left;cursor:pointer}
+.menu button:hover{background:var(--softer)}
+.menu small{color:var(--muted);font-weight:400}
+.modal{position:fixed;inset:0;z-index:70;background:rgba(0,0,0,.6);display:flex;align-items:flex-end;justify-content:center}
+.modal[hidden]{display:none}
+.modal-card{background:var(--surface);width:100%;max-width:480px;border-top:1px solid var(--border);border-radius:18px 18px 0 0;max-height:82vh;overflow-y:auto}
+.modal-head{display:flex;justify-content:space-between;align-items:center;padding:16px 18px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--surface)}
+.modal-head b{font-size:16px}
+.modal-close{border:1px solid var(--border);background:transparent;color:var(--text);width:32px;height:32px;border-radius:50%;font-size:14px;cursor:pointer}
+.modal-body{padding:16px 18px 26px;font-size:14px;line-height:1.65;color:var(--text)}
+.modal-body a{color:#0A84FF;text-decoration:none}
+.toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:#f5f5f5;color:#111;font-size:13px;font-weight:700;border-radius:999px;padding:9px 18px;z-index:80}
 </style>
 </head>
 <body>
 <div class="shell">
-  <button class="theme-strip" id="themeToggle" aria-label="Переключить тему">Тема: БЕЛАЯ</button>
+  <button class="theme-strip" id="themeToggle" aria-label="Переключить тему">Тема: ЧЁРНАЯ</button>
   <div class="top">
-    <div class="brand"><span id="shopName">Detsky Hit</span><small id="tagline">детская одежда</small></div>
+    <div class="logo-name">
+      <img class="logo-img" src="logo.png" alt="D|H Detsky Hit">
+      <div class="brand">Detsky Hit</div>
+    </div>
     <div class="top-right">
-      <div class="fav-wrap"><button class="icon-btn fav-btn" id="showFavBtn">❤</button><span class="fav-badge" id="favBadge" hidden>0</span></div>
-      <a class="top-wa" id="waTop" href="#" target="_blank" rel="noopener">WhatsApp</a>
+      <div class="fav-wrap"><button class="icon-btn" id="showFavBtn" aria-label="Избранное">❤</button><span class="fav-badge" id="favBadge" hidden>0</span></div>
+      <button class="dots" id="dotsBtn" title="Меню" aria-label="Меню">⋮</button>
     </div>
   </div>
+
+  <div class="menu" id="dotsMenu" hidden>
+    <button data-open="about">О магазине</button>
+    <button data-open="delivery">Доставка и оплата</button>
+    <button data-open="return">Возврат и обмен</button>
+    <button id="shareMenuBtn">Поделиться страницей</button>
+    <button id="kkBtn">Тіл: қазақша <small>жақында</small></button>
+  </div>
+  <div class="modal" id="infoModal" hidden>
+    <div class="modal-card">
+      <div class="modal-head"><b id="infoTitle">—</b><button class="modal-close" id="infoClose" aria-label="Закрыть">✕</button></div>
+      <div class="modal-body" id="infoBody">—</div>
+    </div>
+  </div>
+  <div class="toast" id="toast" hidden></div>
+
   <section class="profile">
-    <div class="avatar" id="avatar">DH</div>
-    <div class="pstats"><div class="pstat"><b id="stProducts">0</b><span>товара</span></div><div class="pstat"><b>11–15</b><span>лет</span></div></div>
+    <img class="avatar" src="logo.png" alt="D|H for teenagers">
+    <div class="pstats">
+      <div class="pstat"><b id="stProducts">0</b><span>публикаций</span></div>
+      <div class="pstat"><b id="stFollowers">0</b><span>подписчиков</span></div>
+      <div class="pstat"><b id="stVisits">0</b><span>посещения</span></div>
+    </div>
   </section>
+  <div class="pname">DETSKY HIT</div>
   <div class="pdesc" id="bio">Детская одежда 11–15 лет</div>
-  <nav class="chips" id="chips"></nav>
+  <div class="collab">
+    <div class="stack">
+      <img src="img/kurtka-black.jpg" alt="">
+      <img src="img/hoodie-black.jpg" alt="">
+      <img src="img/hoodie-gray.jpg" alt="">
+      <img src="img/shtany-beige.jpg" alt="">
+    </div>
+    <span>Новая коллекция уже в продаже</span>
+  </div>
+  <div class="cta">
+    <a class="btn primary" id="ctaSubscribe" href="#">Подписаться</a>
+    <a class="btn grey" id="ctaMessage" href="#">Сообщение</a>
+    <button class="btn grey" id="ctaContacts">Контакты</button>
+    <button class="btn grey icon" id="ctaShare" title="Поделиться" aria-label="Поделиться">↗</button>
+  </div>
+
+  <nav class="hlbar" id="hlbar"></nav>
   <main class="grid" id="grid"><div class="hint-load">Загружаем каталог…</div></main>
 </div>
 
@@ -139,79 +211,87 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 <script>
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const THEMES = ['light', 'gray', 'dark'];
+const THEMES = ['dark', 'light', 'gray'];
 const THEME_LABEL = { light: 'Тема: БЕЛАЯ', gray: 'Тема: СЕРАЯ', dark: 'Тема: ЧЁРНАЯ' };
 const THEME_COLOR = { light: '#ffffff', gray: '#d8d8dc', dark: '#000000' };
 function applyTheme(t) {
   document.documentElement.dataset.theme = t;
-  const btn = document.getElementById('themeToggle');
-  if (btn) btn.textContent = THEME_LABEL[t] || THEME_LABEL.light;
+  const btn = $('themeToggle');
+  if (btn) btn.textContent = THEME_LABEL[t] || THEME_LABEL.dark;
   try { localStorage.setItem('dh-theme', t); } catch (e) {}
   const m = document.querySelector('meta[name="theme-color"]');
-  if (m) m.setAttribute('content', THEME_COLOR[t] || '#ffffff');
+  if (m) m.setAttribute('content', THEME_COLOR[t] || '#000000');
 }
 {
-  const initial = document.documentElement.dataset.theme || 'light';
-  document.getElementById('themeToggle').onclick = () => {
-    const i = THEMES.indexOf(document.documentElement.dataset.theme || 'light');
+  const initial = document.documentElement.dataset.theme || 'dark';
+  $('themeToggle').onclick = () => {
+    const i = THEMES.indexOf(document.documentElement.dataset.theme || 'dark');
     applyTheme(THEMES[(i + 1) % THEMES.length]);
   };
   applyTheme(initial);
 }
-const CAT_LABEL = {'куртки':'Куртки','худи':'Свитшоты','рубашки':'Свитшоты','штаны':'Штаны'};
-const CHIPS = [['all','Все'],['куртки','Куртки'],['худи','Свитшоты'],['рубашки','Рубашки'],['штаны','Штаны']];
+
+const CAT_FILTER = [
+  ['all', 'Все', 'logo.png'],
+  ['куртки', 'Куртки', 'img/kurtka-black.jpg'],
+  ['худи', 'Свитшоты', 'img/hoodie-black.jpg'],
+  ['рубашки', 'Рубашки', 'img/img-20261020-wa2797.jpg'],
+  ['штаны', 'Штаны', 'img/shtany-beige.jpg'],
+];
 const FAVS_KEY = 'detskyhit_favs';
 
 let PRODUCTS = [];
-let SETTINGS = { name:'Detsky Hit', tagline:'детская одежда', whatsapp:'77015300491', address:'', hours:'', bio:'', city:'', buttonWhatsapp:'Написать в WhatsApp', buttonDirect:'Написать в Директ' };
+let SETTINGS = { name: 'Detsky Hit', tagline: 'детская одежда', whatsapp: '77015300491', address: '', hours: '', bio: '', city: '', buttonWhatsapp: 'Написать в WhatsApp', buttonDirect: 'Написать в Директ' };
 
-function getFavs(){ try { return JSON.parse(localStorage.getItem(FAVS_KEY) || '[]'); } catch { return []; } }
-function setFavs(a){ localStorage.setItem(FAVS_KEY, JSON.stringify(a)); }
-function favBadgeUpdate(){ const n=getFavs().length; const b=$('favBadge'); b.hidden = n===0; b.textContent = n; }
-function fmtPrice(p){ const n = Number(String(p).replace(/\D/g,'')); return isFinite(n)&&n>0 ? n.toLocaleString('ru-RU')+' ₸' : String(p||''); }
+function getFavs() { try { return JSON.parse(localStorage.getItem(FAVS_KEY) || '[]'); } catch { return []; } }
+function setFavs(a) { localStorage.setItem(FAVS_KEY, JSON.stringify(a)); }
+function favBadgeUpdate() { const n = getFavs().length; const b = $('favBadge'); b.hidden = n === 0; b.textContent = n; }
+function fmtPrice(p) { const n = Number(String(p).replace(/\D/g, '')); return isFinite(n) && n > 0 ? n.toLocaleString('ru-RU') + ' ₸' : String(p || ''); }
 
-function renderTop(){
-  $('shopName').textContent = SETTINGS.name || 'Detsky Hit';
-  $('tagline').textContent = SETTINGS.tagline || 'детская одежда';
+function renderTop() {
   $('bio').textContent = SETTINGS.bio || '';
-  $('waTop').href = 'https://wa.me/' + String(SETTINGS.whatsapp||'').replace(/\D/g,'');
+  const wa = String(SETTINGS.whatsapp || '').replace(/\D/g, '') || '77015300491';
+  $('ctaSubscribe').href = 'https://wa.me/' + wa + '?text=' + encodeURIComponent('Здравствуйте! Хочу получать новинки Detsky Hit');
+  $('ctaMessage').href = 'https://wa.me/' + wa;
   $('stProducts').textContent = PRODUCTS.length;
-  $('avatar').textContent = (SETTINGS.name||'DH').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  $('stFollowers').textContent = '0'; // TODO: реальные подписчики после запуска регистрации
+  $('stVisits').textContent = '0'; // TODO: реальные посещения из Web Analytics
 }
-function renderChips(){
-  $('chips').innerHTML = CHIPS.map(([k,l]) => `<button class="chip" data-cat="${k}">${l}</button>`).join('');
-  $('chips').querySelector('.chip').classList.add('active');
-  $('chips').addEventListener('click', e => {
-    const c = e.target.closest('.chip'); if(!c) return;
-    curCat = c.dataset.cat;
-    [...$('chips').children].forEach(x => x.classList.toggle('active', x === c));
-    renderGrid();
-  });
-}
-let curCat = 'all';
 const gridEl = $('grid');
-function filtered(){ return curCat === 'all' ? PRODUCTS : PRODUCTS.filter(p => p.category === curCat); }
-function thumbOf(p){ if(!p) return ''; if(/^https?:\/\//i.test(p)) return p; const base=p.split('/').pop(); return 'thumbs/' + base.replace(/\.(jpg|jpeg|png|webp)$/i, '.jpg'); }
-function renderGrid(){
+let curCat = 'all';
+const filtered = () => curCat === 'all' ? PRODUCTS : PRODUCTS.filter(p => p.category === curCat);
+const thumbOf = p => { if (!p) return ''; if (/^https?:\/\//i.test(p)) return p; const base = p.split('/').pop(); return 'thumbs/' + base.replace(/\.(jpg|jpeg|png|webp)$/i, '.jpg'); };
+
+function renderHlbar() {
+  const nav = $('hlbar');
+  nav.innerHTML = CAT_FILTER.map(([k, l, img]) => `<button class="hl${k === curCat ? ' active' : ''}" data-cat="${k}"><span class="hl-circle"><img src="${img}" alt="${l}"></span><span>${l}</span></button>`).join('');
+  nav.querySelectorAll('.hl').forEach(b => b.addEventListener('click', () => {
+    curCat = b.dataset.cat;
+    nav.querySelectorAll('.hl').forEach(x => x.classList.toggle('active', x === b));
+    renderGrid();
+  }));
+}
+
+function renderGrid() {
   const list = filtered();
   const favs = getFavs();
-  if (!list.length){ gridEl.innerHTML = '<div class="empty"><b>Пока пусто</b>Скоро добавим товары</div>'; return; }
+  if (!list.length) { gridEl.innerHTML = '<div class="empty"><b>Пока пусто</b>Скоро добавим товары</div>'; return; }
   gridEl.innerHTML = list.map(p => `
     <div class="tile" data-id="${esc(p.id)}">
-      <img src="${esc(thumbOf(p.images?.[0]||''))}" loading="lazy" decoding="async" alt="${esc(p.title||p.article)}">
+      <img src="${esc(thumbOf(p.images?.[0] || ''))}" loading="lazy" decoding="async" alt="${esc(p.title || p.article)}">
       <button class="fav-btn-tile" data-id="${esc(p.id)}" aria-label="В избранное">${favs.includes(p.id) ? '❤' : '🤍'}</button>
-      <span class="tag">${fmtPrice(p.price)}</span>
+      <span class="mocktag">${fmtPrice(p.price)}</span>
     </div>`).join('');
 }
 gridEl.addEventListener('click', e => {
   const fav = e.target.closest('.fav-btn-tile');
-  if (fav){
+  if (fav) {
     e.stopPropagation();
     let favs = getFavs();
     if (favs.includes(fav.dataset.id)) favs = favs.filter(x => x !== fav.dataset.id); else favs.push(fav.dataset.id);
     setFavs(favs); favBadgeUpdate(); renderGrid(); return;
   }
-  const tile = e.target.closest('.tile'); if(!tile) return;
+  const tile = e.target.closest('.tile'); if (!tile) return;
   openViewer(tile.dataset.id);
 });
 
@@ -219,28 +299,28 @@ const viewer = $('viewer');
 $('closeBtn').addEventListener('click', () => viewer.hidden = true);
 document.addEventListener('keydown', e => { if (e.key === 'Escape') viewer.hidden = true; });
 
-function openViewer(id){
-  const p = PRODUCTS.find(x => x.id === id); if(!p) return;
+function openViewer(id) {
+  const p = PRODUCTS.find(x => x.id === id); if (!p) return;
   const favs = getFavs();
   $('posts').innerHTML = `
     <article class="post" id="post-${esc(p.id)}">
       <div class="ph">
-        <div class="car" id="car-${esc(p.id)}">${(p.images||[]).map(img => `<div class="slide"><img src="${esc(img)}" alt="${esc(p.title||p.article)}"></div>`).join('')}</div>
-        <div class="dots">${(p.images||[]).map((_,i)=>`<span class="dot${i===0?' on':''}"></span>`).join('')}</div>
+        <div class="car" id="car-${esc(p.id)}">${(p.images || []).map(img => `<div class="slide"><img src="${esc(img)}" alt="${esc(p.title || p.article)}"></div>`).join('')}</div>
+        <div class="dots">${(p.images || []).map((_, i) => `<span class="dot${i === 0 ? ' on' : ''}"></span>`).join('')}</div>
       </div>
       <div class="bar">
-        <button class="icon-btn" id="favBtn">${favs.includes(p.id) ? '❤' : '🤍'}<span class="cnt" id="favCnt">${favs.length}</span></button>
-        <a class="direct" id="waBtn" target="_blank" rel="noopener">${esc(SETTINGS.buttonWhatsapp || 'Написать в WhatsApp')}</a>
+        <button class="icon-btn2 fav-btn" id="favBtn">${favs.includes(p.id) ? '❤' : '🤍'}<span class="cnt" id="favCnt">${favs.length}</span></button>
+        <a class="direct" id="waBtn" target="_blank" rel="noopener">💬 ${esc(SETTINGS.buttonWhatsapp || 'Написать в WhatsApp')}</a>
       </div>
       <div class="cap">
         <div class="t">${esc(p.title || ('арт. ' + p.article))}</div>
         <div class="p">${fmtPrice(p.price)} · арт. ${esc(p.article)}</div>
-        <div class="s">Размеры: <b>${(p.sizes||[]).join(' · ') || '—'}</b></div>
+        <div class="s">Размеры: <b>${(p.sizes || []).join(' · ') || '—'}</b></div>
         ${p.description ? `<div class="desc">${esc(p.description)}</div>` : ''}
       </div>
     </article>`;
   const msg = encodeURIComponent(`Здравствуйте! Интересует: ${p.title || p.article} (${fmtPrice(p.price)}), арт. ${p.article}`);
-  $('waBtn').href = 'https://wa.me/' + String(SETTINGS.whatsapp).replace(/\D/g,'') + '?text=' + msg;
+  $('waBtn').href = 'https://wa.me/' + String(SETTINGS.whatsapp).replace(/\D/g, '') + '?text=' + msg;
   $('favBtn').addEventListener('click', () => {
     let favs = getFavs();
     if (favs.includes(p.id)) favs = favs.filter(x => x !== p.id); else favs.push(p.id);
@@ -250,7 +330,7 @@ function openViewer(id){
   const slider = $('car-' + p.id);
   if (slider) slider.addEventListener('scroll', () => {
     const idx = Math.round(slider.scrollLeft / slider.clientWidth);
-    slider.parentElement.querySelectorAll('.dot').forEach((d,i) => d.classList.toggle('on', i === idx));
+    slider.parentElement.querySelectorAll('.dot').forEach((d, i) => d.classList.toggle('on', i === idx));
   });
   viewer.hidden = false;
 }
@@ -259,7 +339,7 @@ $('showFavBtn').addEventListener('click', () => {
   const ids = getFavs();
   const favs = ids.map(id => PRODUCTS.find(p => p.id === id)).filter(Boolean);
   $('favList').innerHTML = favs.length
-    ? favs.map(p => `<div class="fav-item"><img src="${esc(p.images?.[0]||'')}" alt="${esc(p.title||p.article)}"><div><b>${esc(p.title||p.article)}</b><div class="price">${fmtPrice(p.price)} · арт. ${esc(p.article)}</div><button class="fav-remove" data-id="${esc(p.id)}">Убрать</button></div></div>`).join('')
+    ? favs.map(p => `<div class="fav-item"><img src="${esc(p.images?.[0] || '')}" alt="${esc(p.title || p.article)}"><div><b>${esc(p.title || p.article)}</b><div class="price">${fmtPrice(p.price)} · арт. ${esc(p.article)}</div><button class="fav-remove" data-id="${esc(p.id)}">Убрать</button></div></div>`).join('')
     : '<p style="color:#888">Вы ещё ничего не добавили в избранное.</p>';
   $('favoritesSection').hidden = false;
   document.querySelector('.shell').hidden = true;
@@ -267,15 +347,56 @@ $('showFavBtn').addEventListener('click', () => {
 });
 $('favClose').addEventListener('click', () => { $('favoritesSection').hidden = true; document.querySelector('.shell').hidden = false; });
 $('favList').addEventListener('click', e => {
-  const b = e.target.closest('.fav-remove'); if(!b) return;
+  const b = e.target.closest('.fav-remove'); if (!b) return;
   setFavs(getFavs().filter(x => x !== b.dataset.id));
   $('showFavBtn').click();
 });
 
+// --- ⋮ menu, modals, share ---
+const INFO = {
+  about: { t: 'О магазине', b: 'Detsky Hit — детская и подростковая одежда 11–15 лет.<br><br>Мы в Караганде, ТД «Таир 3», 2 этаж. Подбираем одежду с нормальным кроем и качеством, которые сами бы купили своим детям.<br><br>Kaspi RED | QR · рассрочка 0-0-24 · доставка по всему Казахстану.' },
+  delivery: { t: 'Доставка и оплата', b: '<b>Оплата:</b> Kaspi RED | QR, рассрочка 0-0-24.<br><br><b>Самовывоз:</b> Караганда, ТД «Таир 3», 2 этаж.<br><b>Доставка:</b> по Караганде и по всему Казахстану. Условия и сроки — в WhatsApp при оформлении.<br><br>WhatsApp: <a href="https://wa.me/77015300491">+7 701 530-04-91</a>' },
+  return: { t: 'Возврат и обмен', b: 'Обмен и возврат возможны при сохранении товарного вида, бирок и чека.<br><br>Для одежды важны размер и посадка — если не подошло, напишем в WhatsApp и договоримся о замене или возврате.<br><br>WhatsApp: <a href="https://wa.me/77015300491">+7 701 530-04-91</a>' },
+  contacts: { t: 'Контакты', b: 'Адрес: Караганда, ТД «Таир 3», 2 этаж.<br>Часы работы: Пн–Сб 10:00–20:00, Вс 11:00–19:00.<br>WhatsApp: <a href="https://wa.me/77015300491">+7 701 530-04-91</a><br>Instagram: <a href="https://instagram.com/detsky_hit" target="_blank" rel="noopener">@detsky_hit</a>' },
+};
+const menu = $('dotsMenu');
+const modal = $('infoModal');
+const toast = $('toast');
+const dotsBtn = $('dotsBtn');
+function showToast(t) { toast.textContent = t; toast.hidden = false; setTimeout(() => toast.hidden = true, 2200); }
+function openInfo(key) {
+  $('infoTitle').textContent = INFO[key].t;
+  $('infoBody').innerHTML = INFO[key].b;
+  modal.hidden = false;
+  menu.hidden = true;
+}
+dotsBtn.addEventListener('click', () => { menu.hidden = !menu.hidden; });
+document.addEventListener('click', e => { if (!e.target.closest('.menu') && !e.target.closest('#dotsBtn')) menu.hidden = true; });
+menu.addEventListener('click', e => {
+  const btn = e.target.closest('button'); if (!btn) return;
+  const key = btn.dataset.open;
+  if (key) { openInfo(key); return; }
+  if (btn.id === 'shareMenuBtn') { sharePage(); menu.hidden = true; return; }
+  if (btn.id === 'kkBtn') { showToast('Қазақ тілі жақында'); menu.hidden = true; return; }
+});
+$('ctaContacts').addEventListener('click', () => openInfo('contacts'));
+$('ctaShare').addEventListener('click', sharePage);
+async function sharePage() {
+  const data = { title: 'Detsky Hit', text: 'Детская одежда 11–15 лет. Караганда.', url: location.href };
+  try { await navigator.share(data); }
+  catch (e) {
+    try { await navigator.clipboard.writeText(location.href); showToast('Ссылка скопирована'); }
+    catch (e2) { showToast('Скопируйте адрес из строки браузера'); }
+  }
+}
+$('infoClose').addEventListener('click', () => modal.hidden = true);
+modal.addEventListener('click', e => { if (e.target === modal) modal.hidden = true; });
+
+// --- catalog load ---
 fetch('/api/catalog')
   .then(r => r.ok ? r.json() : Promise.reject(new Error('no catalog')))
-  .then(d => { PRODUCTS = d.products || []; SETTINGS = { ...SETTINGS, ...(d.settings || {}) }; renderTop(); renderChips(); renderGrid(); favBadgeUpdate(); })
-  .catch(() => { document.getElementById('grid').innerHTML = '<div class="empty"><b>Каталог временно недоступен</b>Попробуйте обновить страницу</div>'; });
+  .then(d => { PRODUCTS = d.products || []; SETTINGS = { ...SETTINGS, ...(d.settings || {}) }; renderTop(); renderHlbar(); renderGrid(); favBadgeUpdate(); })
+  .catch(() => { gridEl.innerHTML = '<div class="empty"><b>Каталог временно недоступен</b>Попробуйте обновить страницу</div>'; });
 </script>
 <!-- Cloudflare Web Analytics --><script type='module' src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "4924366f5d8c4b538ddd5be418c11a71"}'></script><!-- End Cloudflare Web Analytics -->
 </body>

@@ -9,3 +9,5 @@ node_modules/
 
 # local scratch
 src/
+_*.py
+.DS_Store
