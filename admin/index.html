@@ -17,29 +17,36 @@ button{cursor:pointer;border-radius:8px;border:1px solid #111;background:#111;co
 button.ghost{background:#fff;color:#111}
 button.danger{background:#c00;border-color:#c00;color:#fff}
 button.small{padding:6px 12px;font-size:12px}
-.grid{display:grid;grid-template-columns:260px 1fr;gap:16px;max-width:1200px}
-.product-list{max-height:70vh;overflow:auto;border:1px solid #ddd;border-radius:12px;background:#fff}
+.topbar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.page{max-width:1200px}
+.layout{display:grid;grid-template-columns:300px 1fr;gap:16px}
+.product-list{max-height:72vh;overflow:auto;border:1px solid #ddd;border-radius:12px;background:#fff}
 .product-item{padding:8px 10px;border-bottom:1px solid #eee;cursor:pointer;display:flex;gap:10px;align-items:center}
 .product-item img{width:48px;height:64px;object-fit:contain;background:#f4f4f4;border-radius:6px}
 .product-item:hover{background:#f5f5f5}
 .product-item.active{background:#e8f0fe;border-left:3px solid #111}
+.sidebar-note{font-size:11px;color:#999;margin-top:8px}
+.modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.55);z-index:999;display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:20px}
+.modal-overlay.hidden{display:none}
+.modal-card{background:#fff;border-radius:14px;max-width:880px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.35);max-height:92vh;overflow-y:auto}
+.modal-header{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid #eee;position:sticky;top:0;background:#fff;z-index:1}
+.modal-body{padding:16px}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.sizes{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
+.size-chip{border:1px solid #ddd;background:#fff;border-radius:8px;padding:8px 14px;cursor:pointer;user-select:none}
+.size-chip.active{background:#111;color:#fff;border-color:#111}
 .photos{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
 .photo{position:relative;width:96px;height:124px;background:#f4f4f4;border:1px solid #ddd;border-radius:8px;overflow:hidden;display:flex;align-items:center;justify-content:center;cursor:grab}
 .photo img{max-width:100%;max-height:100%;object-fit:contain}
 .photo .primary{position:absolute;top:4px;left:4px;background:#111;color:#fff;font-size:10px;padding:2px 6px;border-radius:999px}
 .photo .del{position:absolute;bottom:4px;right:4px;background:rgba(0,0,0,.6);color:#fff;border:0;border-radius:6px;font-size:11px;padding:2px 6px;cursor:pointer}
 .hint{font-size:12px;color:#888;margin-top:6px}
-.sizes{display:flex;gap:8px;flex-wrap:wrap}
-.size-chip{border:1px solid #ddd;background:#fff;border-radius:8px;padding:8px 14px;cursor:pointer;user-select:none}
-.size-chip.active{background:#111;color:#fff;border-color:#111}
 .row{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;align-items:center}
 .ok{color:#0a7}.err{color:#c00}
 .hidden{display:none !important}
-.two-col{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .login-wrap{max-width:380px;margin:80px auto}
 .login-card{background:#fff;border:1px solid #ddd;border-radius:16px;padding:28px;box-shadow:0 4px 24px rgba(0,0,0,.06)}
-.topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:10px;flex-wrap:wrap}
-@media(max-width:900px){.grid{grid-template-columns:1fr}.two-col{grid-template-columns:1fr}}
+@media(max-width:900px){.layout{grid-template-columns:1fr}.two-col{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -54,7 +61,7 @@ button.small{padding:6px 12px;font-size:12px}
   </div>
 </div>
 
-<div id="adminScreen" class="hidden">
+<div id="adminScreen" class="page hidden">
   <div class="topbar">
     <div><h1>Detsky Hit — Админка</h1><div class="sub">Редактирование товаров и настроек</div></div>
     <div class="row" style="margin-top:0">
@@ -64,21 +71,51 @@ button.small{padding:6px 12px;font-size:12px}
     </div>
   </div>
 
-  <div class="row" style="margin-top:0">
+  <div class="row">
     <button id="newProductBtn">+ Новая публикация</button>
     <button class="ghost" id="saveAllBtn">Сохранить всё</button>
     <span id="saveStatus" class="ok"></span>
   </div>
 
-  <div class="grid" style="margin-top:12px">
+  <div class="layout" style="margin-top:12px">
     <div>
       <input type="text" id="searchBox" placeholder="Поиск по артикулу / названию">
       <div class="product-list" id="productList" style="margin-top:8px"></div>
+      <p class="sidebar-note">Нажмите на товар — откроется отдельное окно. Список всегда виден.</p>
     </div>
-    <div class="card" id="editorCard">
-      <div id="editorEmpty" class="sub">Выберите товар слева</div>
-      <div id="editorForm" class="hidden">
-        <div class="topbar" style="margin-bottom:6px"><b id="editorTitle"></b><button class="danger small" id="deleteProductBtn">Удалить</button></div>
+    <div class="card">
+      <h2 style="font-size:15px;margin-bottom:6px">Настройки сайта и продвижение</h2>
+      <div class="two-col">
+        <div><label>Название магазина</label><input type="text" id="sName"></div>
+        <div><label>Подзаголовок</label><input type="text" id="sTagline"></div>
+      </div>
+      <label>Bio</label><textarea id="sBio"></textarea>
+      <div class="two-col">
+        <div><label>Адрес</label><input type="text" id="sAddress"></div>
+        <div><label>Город</label><input type="text" id="sCity"></div>
+      </div>
+      <div class="two-col">
+        <div><label>Часы работы</label><input type="text" id="sHours"></div>
+        <div><label>WhatsApp</label><input type="tel" id="sWhatsapp"></div>
+      </div>
+      <label>Текст кнопки WhatsApp</label><input type="text" id="sButtonWa">
+      <div class="row"><button id="saveSettingsBtn">Сохранить настройки</button><span id="settingsStatus" class="ok"></span></div>
+      <hr style="border:none;border-top:1px solid #eee;margin:14px 0">
+      <label>Сменить пароль</label><input type="password" id="newPwd" placeholder="Новый пароль">
+      <p class="hint">Пароль хранится в Netlify (Environment variables → DETS_ADMIN_PASSWORD). После смены — действо только после следующего деплоя.</p>
+      <p class="hint"><a href="https://app.netlify.com/projects/detskyhit/settings/env" target="_blank" rel="noopener" style="color:#111">Открыть переменные окружения в Netlify</a></p>
+    </div>
+  </div>
+</div>
+
+<div id="productModal" class="modal-overlay hidden" role="dialog" aria-modal="true">
+  <div class="modal-card">
+    <div class="modal-header">
+      <b id="modalTitle">Редактирование товара</b>
+      <button class="ghost small" id="closeModalBtn" type="button">Закрыть</button>
+    </div>
+    <div class="modal-body">
+      <div id="editorForm">
         <div class="two-col">
           <div><label>Артикул *</label><input type="text" id="fArticle"></div>
           <div><label>Название</label><input type="text" id="fTitle"></div>
@@ -98,36 +135,12 @@ button.small{padding:6px 12px;font-size:12px}
         <div class="sizes" id="sizesBox"></div>
         <label style="margin-top:10px">Описание</label>
         <textarea id="fDescription"></textarea>
-        <label style="margin-top:10px">Фото (1–5): первое — главное. Перетащите для порядка.</label>
+        <label style="margin-top:10px">Фото (1–5). Первое — главное. Перетаскивайте для порядка.</label>
         <div class="photos" id="photoRow"></div>
         <div class="row">
           <label class="ghost" style="cursor:pointer;padding:8px 14px;border:1px solid #111;border-radius:8px">+ Добавить фото<input type="file" id="addPhotoInput" accept="image/*" multiple hidden></label>
-          <span class="hint" id="photoHint">Фото хранятся на сайте (img/)</span>
         </div>
-        <div class="row"><button id="saveProductBtn">Сохранить товар</button><span id="productStatus" class="ok"></span></div>
-      </div>
-
-      <div style="border-top:1px solid #eee;margin:16px 0;padding-top:16px">
-        <h2 style="font-size:16px">Настройки сайта</h2>
-        <div class="two-col">
-          <div><label>Название магазина</label><input type="text" id="sName"></div>
-          <div><label>Подзаголовок</label><input type="text" id="sTagline"></div>
-        </div>
-        <label>Bio</label><textarea id="sBio"></textarea>
-        <div class="two-col">
-          <div><label>Адрес</label><input type="text" id="sAddress"></div>
-          <div><label>Город</label><input type="text" id="sCity"></div>
-        </div>
-        <div class="two-col">
-          <div><label>Часы работы</label><input type="text" id="sHours"></div>
-          <div><label>WhatsApp</label><input type="tel" id="sWhatsapp"></div>
-        </div>
-        <label>Текст кнопки WhatsApp</label><input type="text" id="sButtonWa">
-        <div class="row"><button id="saveSettingsBtn">Сохранить настройки</button><span id="settingsStatus" class="ok"></span></div>
-        <hr style="border:none;border-top:1px solid #eee;margin:16px 0">
-        <label>Сменить пароль</label><input type="password" id="newPwd" placeholder="Новый пароль">
-        <p class="hint">Пароль хранится в настройках Netlify, применится при следующем деплое.</p>
-        <div class="row"><button id="forgotPwdBtn" class="ghost small">Инструкция по смене пароля</button></div>
+        <div class="row"><button id="saveProductBtn">Сохранить товар</button><button class="danger" id="deleteProductBtn">Удалить</button><span id="productStatus" class="ok"></span></div>
       </div>
     </div>
   </div>
@@ -143,7 +156,7 @@ let SETTINGS = {};
 let currentId = null;
 let dragEl = null;
 
-const API = '/.netlify/functions/catalog';
+const API = '/api/catalog';
 const PWD_KEY = 'detskyhit_admin_pwd';
 
 $('loginBtn').onclick = async () => {
@@ -151,24 +164,23 @@ $('loginBtn').onclick = async () => {
   const pwd = $('pwd').value; if (!pwd){ err.textContent = 'Введите пароль'; err.classList.remove('hidden'); return; }
   PASSWORD = pwd;
   try {
-    const r = await fetch(API);
-    if (!r.ok) throw new Error('Нет ответа от сервера');
+    const r = await fetch(API, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ password: pwd }) });
     const data = await r.json();
-    PRODUCTS = data.products; SETTINGS = data.settings || {};
+    if (!r.ok || !data.ok){ err.textContent = (data && data.error) || 'Неверный пароль'; err.classList.remove('hidden'); return; }
+    PRODUCTS = data.products || []; SETTINGS = data.settings || {};
     sessionStorage.setItem(PWD_KEY, pwd);
     openAdmin();
     $('pwd').value = '';
-  } catch(e) {
-    err.textContent = 'Ошибка подключения'; err.classList.remove('hidden');
-  }
+  } catch(e) { err.textContent = 'Ошибка подключения'; err.classList.remove('hidden'); }
 };
-
 $('logoutBtn').onclick = () => { sessionStorage.removeItem(PWD_KEY); PASSWORD=null; $('adminScreen').classList.add('hidden'); $('loginScreen').classList.remove('hidden'); };
 $('openSiteBtn').onclick = () => window.open('/', '_blank');
 $('reloadBtn').onclick = () => location.reload();
 
 async function saveAll(){
   const status = $('saveStatus'); status.textContent = 'Сохраняю…'; status.style.color='#555';
+  if (!Array.isArray(PRODUCTS) || PRODUCTS.length === 0){ status.textContent = 'Ошибка: товары не загружены'; status.style.color='#c00'; return; }
+  // delete button removes from UI but should also persist empty arrays
   const r = await fetch(API, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ password: PASSWORD, products: PRODUCTS, settings: SETTINGS }) });
   const d = await r.json();
   if (!r.ok || d.error){ status.textContent = 'Ошибка: ' + (d.error || r.status); status.style.color='#c00'; return; }
@@ -178,8 +190,8 @@ $('saveAllBtn').onclick = saveAll;
 
 function renderList(){
   const q = $('searchBox').value.toLowerCase().trim();
-  $('productList').innerHTML = PRODUCTS.filter(p => !q || (p.article + ' ' + (p.title||'')).toLowerCase().includes(q))
-    .map(p => `<div class="product-item ${p.id===currentId?'active':''}" data-id="${esc(p.id)}"><img src="${esc(p.images?.[0]||'')}"><div><div>${esc(p.title||p.id)}</div><div style="font-size:12px;color:#777">арт. ${esc(p.article)} · ${esc(p.price||'—')}</div></div></div>`).join('') || '<p style="padding:16px;color:#999">Ничего не найдено</p>';
+  $('productList').innerHTML = (PRODUCTS || []).filter(p => !q || (p.article + ' ' + (p.title||'')).toLowerCase().includes(q))
+    .map(p => `<div class="product-item ${p.id===currentId?'active':''}" data-id="${esc(p.id)}"><img src="/${esc(p.images?.[0]||'')}"><div><div>${esc(p.title||p.id)}</div><div style="font-size:12px;color:#777">арт. ${esc(p.article)} · ${esc(p.price||'—')}</div></div></div>`).join('') || '<p style="padding:16px;color:#999">Ничего не найдено</p>';
 }
 $('searchBox').addEventListener('input', renderList);
 $('productList').addEventListener('click', e => {
@@ -190,17 +202,23 @@ $('productList').addEventListener('click', e => {
 function openProduct(id){
   currentId = id;
   const p = PRODUCTS.find(x => x.id === id); if(!p) return;
-  $('editorEmpty').classList.add('hidden'); $('editorForm').classList.remove('hidden');
-  $('editorTitle').textContent = p.title || p.id;
+  $('modalTitle').textContent = (p.title || p.id) + ' (арт. ' + p.article + ')';
   $('fArticle').value = p.article || ''; $('fTitle').value = p.title || ''; $('fPrice').value = p.price || '';
   $('fCategory').value = p.category || 'штаны'; $('fDescription').value = p.description || '';
-  renderSizes(p.sizes || []); renderPhotos(p.images || []); renderList();
+  renderSizes(p.sizes || []); renderPhotos(p.images || []);
+  $('productModal').classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
 }
+function closeModal(){
+  $('productModal').classList.add('hidden');
+  document.body.style.overflow = '';
+}
+
 function renderSizes(sizes){ $('sizesBox').innerHTML = SIZES.map(s => `<button type="button" class="size-chip ${sizes.includes(s)?'active':''}" data-s="${s}">${s}</button>`).join(''); }
 $('sizesBox').addEventListener('click', e => { const b = e.target.closest('.size-chip'); if(!b) return; b.classList.toggle('active'); });
 function renderPhotos(images){
-  $('photoRow').innerHTML = images.map((src, i) => `<div class="photo ${i===0?'is-primary':''}" data-src="${esc(src)}" draggable="true">${i===0 ? '<span class="primary">Главное</span>' : ''}<img src="${esc(src)}" alt=""><button class="del" data-src="${esc(src)}">×</button></div>`).join('');
-  $('photoHint').textContent = 'Фото: ' + images.length + '/5 · первое — главное · перетаскивайте для изменения порядка';
+  $('photoRow').innerHTML = (images||[]).map((src, i) => `<div class="photo ${i===0?'is-primary':''}" data-src="/${esc(src)}" draggable="true">${i===0 ? '<span class="primary">Главное</span>' : ''}<img src="/${esc(src)}" alt=""><button class="del" data-src="/${esc(src)}">×</button></div>`).join('');
+  if (images.length === 0){ $('photoRow').innerHTML = '<span class="hint">Фото нет. Добавьте.</span>'; }
 }
 $('photoRow').addEventListener('dragstart', e => { const ph = e.target.closest('.photo'); if(!ph) return; dragEl = ph; ph.style.opacity='.5'; });
 $('photoRow').addEventListener('dragover', e => { e.preventDefault(); const ph = e.target.closest('.photo'); if(!ph || ph===dragEl) return; const before = (e.clientX - ph.getBoundingClientRect().left) < ph.offsetWidth/2; ph.parentNode.insertBefore(dragEl, before ? ph : ph.nextSibling); refreshPrimaryBadge(); });
@@ -214,8 +232,8 @@ function refreshPrimaryBadge(){
 }
 $('photoRow').addEventListener('click', e => {
   const del = e.target.closest('.del'); if(!del) return;
-  const src = del.dataset.src;
-  const p = PRODUCTS.find(x => x.id === currentId);
+  const src = del.dataset.src.replace(/^\//, '');
+  const p = PRODUCTS.find(x => x.id === currentId); if(!p) return;
   p.images = p.images.filter(x => x !== src); renderPhotos(p.images);
 });
 $('addPhotoInput').addEventListener('change', e => {
@@ -229,24 +247,33 @@ $('addPhotoInput').addEventListener('change', e => {
 $('saveProductBtn').onclick = () => {
   const article = $('fArticle').value.trim();
   if (!article){ alert('Нужен артикул'); return; }
-  const p = PRODUCTS.find(x => x.id === currentId);
+  const p = PRODUCTS.find(x => x.id === currentId); if(!p) return;
   p.article = article; p.title = $('fTitle').value.trim(); p.price = $('fPrice').value.trim();
   p.category = $('fCategory').value; p.description = $('fDescription').value;
   p.sizes = [...$('sizesBox').querySelectorAll('.size-chip.active')].map(b => b.dataset.s);
-  p.images = [...$('photoRow').querySelectorAll('.photo')].map(x => x.dataset.src);
-  $('productStatus').textContent = 'Сохранено ✓';
-  renderList();
+  p.images = [...$('photoRow').querySelectorAll('.photo')].map(x => x.dataset.src.replace(/^\//, ''));
+  $('productStatus').textContent = 'Сохраняю…'; $('productStatus').style.color='#555';
+  const status = $('productStatus');
+  fetch(API, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ password: PASSWORD, products: PRODUCTS, settings: SETTINGS }) })
+    .then(async r => {
+      const d = await r.json();
+      if (r.ok && d.ok){ status.textContent = 'Сохранено ✓'; status.style.color='#0a7'; closeModal(); renderList(); }
+      else { status.textContent = 'Ошибка: ' + (d.error || r.status); status.style.color='#c00'; }
+    })
+    .catch(() => { status.textContent = 'Ошибка сети'; status.style.color='#c00'; });
 };
 $('deleteProductBtn').onclick = () => {
   if (!currentId) return; if (!confirm('Удалить товар?')) return;
   PRODUCTS = PRODUCTS.filter(x => x.id !== currentId);
-  currentId = null; $('editorForm').classList.add('hidden'); $('editorEmpty').classList.remove('hidden'); renderList();
+  currentId = null; closeModal(); renderList();
 };
 $('newProductBtn').onclick = () => {
   const id = 'NEW-' + Date.now().toString(36).toUpperCase();
   PRODUCTS.push({ id, article: '', title: 'Новая публикация', category: 'штаны', price: '', color: '', description: '', sizes: SIZES.slice(), images: [] });
   currentId = id; renderList(); openProduct(id);
 };
+$('closeModalBtn').onclick = closeModal;
+$('productModal').addEventListener('click', e => { if (e.target.id === 'productModal') closeModal(); });
 
 function renderSettings(){
   $('sName').value = SETTINGS.name || ''; $('sTagline').value = SETTINGS.tagline || ''; $('sBio').value = SETTINGS.bio || '';
@@ -259,16 +286,14 @@ $('saveSettingsBtn').onclick = async () => {
   const r = await fetch(API, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ password: PASSWORD, products: PRODUCTS, settings: SETTINGS }) });
   $('settingsStatus').textContent = r.ok ? 'Сохранено ✓' : 'Ошибка';
 };
-$('forgotPwdBtn').onclick = () => alert('Пароль хранится в переменной DETS_ADMIN_PASSWORD в Netlify. Чтобы сменить — Project configuration → Environment variables.');
 
 function openAdmin(){
   $('loginScreen').classList.add('hidden');
   $('adminScreen').classList.remove('hidden');
   renderList(); renderSettings();
 }
-// auto-login if password stored in session
 const saved = sessionStorage.getItem(PWD_KEY);
-if (saved){ PASSWORD = saved; fetch(API).then(r => r.json()).then(d => { PRODUCTS = d.products; SETTINGS = d.settings || {}; openAdmin(); }).catch(()=>{}); }
+if (saved){ PASSWORD = saved; fetch(API, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ password: saved }) }).then(r => r.json()).then(d => { if (d && d.ok){ PRODUCTS = d.products; SETTINGS = d.settings || {}; openAdmin(); } else { sessionStorage.removeItem(PWD_KEY); } }).catch(()=>{}); }
 </script>
 </body>
 </html>

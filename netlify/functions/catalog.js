@@ -1,8 +1,9 @@
 // GET  /.netlify/functions/catalog
-//   -> { products, settings }
-// POST /.netlify/functions/catalog  (auth required)
-//   body: { products, settings }
-//   -> updates products via Supabase REST with SERVICE_ROLE_KEY (server-side only)
+//   -> { products, settings }  (public read)
+// POST /.netlify/functions/catalog
+//   body: { password, products?, settings? }  (auth required for write / verify)
+//   - If only { password } provided and matches -> { ok: true, products, settings }
+//   - If password wrong -> 401
 const URL_SUPABASE = process.env.SUPABASE_URL;
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const ADMIN_PASSWORD = process.env.DETS_ADMIN_PASSWORD || "detskyhit2026";
@@ -39,6 +40,9 @@ async function readCatalog() {
   for (const r of settingsRows) settings[r.key] = r.value;
   return { products, settings };
 }
+function parseBody(event) {
+  try { return JSON.parse(event.body || "{}"); } catch { return {}; }
+}
 
 exports.handler = async (event) => {
   if (!URL_SUPABASE || !SERVICE_KEY) return missingConfig();
@@ -53,38 +57,46 @@ exports.handler = async (event) => {
   }
 
   if (event.httpMethod === "POST") {
-    // body: { password, products, settings }
-    let body = {};
-    try { body = JSON.parse(event.body || "{}"); } catch {}
-    if (String(body.password || "") !== ADMIN_PASSWORD) return unauthorized();
+    const body = parseBody(event);
+    const pwd = String(body.password || "");
+    if (pwd !== ADMIN_PASSWORD) return unauthorized();
 
-    const products = Array.isArray(body.products) ? body.products : [];
-    for (const p of products) {
-      if (!String(p.article || "").trim()) {
-        return { statusCode: 400, body: JSON.stringify({ error: `У товара «${p.title || p.id}» не указан артикул` }) };
+    // Verify-only (no products/settings to write)
+    const products = Array.isArray(body.products) ? body.products : null;
+    const settings = body.settings && typeof body.settings === "object" ? body.settings : null;
+    if (!products && !settings) {
+      const cat = await readCatalog();
+      return { statusCode: 200, headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ok: true, ...cat }) };
+    }
+
+    if (products) {
+      for (const p of products) {
+        if (!String(p.article || "").trim()) {
+          return { statusCode: 400, body: JSON.stringify({ error: `У товара «${p.title || p.id}» не указан артикул` }) };
+        }
+      }
+      // upsert products
+      const upsertProducts = await supa("products", "POST", products, "resolution=merge-duplicates");
+      if (upsertProducts.status !== 201 && upsertProducts.status !== 200) {
+        return { statusCode: 502, body: JSON.stringify({ error: "Не удалось сохранить товары", details: upsertProducts.text }) };
+      }
+      // delete removed items
+      const existing = await supa("products?select=id");
+      if (existing.status === 200) {
+        const ids = JSON.parse(existing.text).map(r => r.id);
+        const keep = new Set(products.map(p => p.id));
+        const remove = ids.filter(id => !keep.has(id));
+        for (const id of remove) {
+          await supa(`products?id=eq.${encodeURIComponent(id)}`, "DELETE");
+        }
       }
     }
 
-    // upsert products
-    const upsertProducts = await supa("products", "POST", products, "resolution=merge-duplicates");
-    if (upsertProducts.status !== 201 && upsertProducts.status !== 200) {
-      return { statusCode: 502, body: JSON.stringify({ error: "Не удалось сохранить товары", details: upsertProducts.text }) };
-    }
-    // delete removed items
-    const existing = await supa("products?select=id");
-    if (existing.status === 200) {
-      const ids = JSON.parse(existing.text).map(r => r.id);
-      const keep = new Set(products.map(p => p.id));
-      const remove = ids.filter(id => !keep.has(id));
-      for (const id of remove) {
-        await supa(`products?id=eq.${encodeURIComponent(id)}`, "DELETE");
+    if (settings) {
+      const rows = Object.entries(settings).map(([key, value]) => ({ key, value: String(value) }));
+      if (rows.length) {
+        await supa("settings", "POST", rows, "resolution=merge-duplicates");
       }
-    }
-    // settings
-    const settings = body.settings || {};
-    const rows = Object.entries(settings).map(([key, value]) => ({ key, value: String(value) }));
-    if (rows.length) {
-      await supa("settings", "POST", rows, "resolution=merge-duplicates");
     }
     return { statusCode: 200, body: JSON.stringify({ ok: true }) };
   }
