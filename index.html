@@ -22,19 +22,19 @@
 <script>try{document.documentElement.dataset.theme = localStorage.getItem('dh-theme') || 'dark';}catch(e){}</script>
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-:root,[data-theme="light"]{
+:root,html[data-theme="light"]{
   --bg:#ffffff; --shell:#ffffff; --top:#ffffff; --surface:#ffffff; --softer:#f4f4f4;
   --border:#e5e5e5; --chip-border:#d9d9d9; --text:#111111; --muted:#888888; --muted2:#666666; --desc:#444444; --hint:#999999;
   --chip-bg:#ffffff; --chip-active-bg:#111111; --chip-active-text:#ffffff; --chip-active-border:#111111;
   --avatar-border:#161616; --tile-bg:#ffffff;
 }
-[data-theme="gray"]{
+html[data-theme="gray"]{
   --bg:#d8d8dc; --shell:#d8d8dc; --top:#d8d8dc; --surface:#e9e9ed; --softer:#c1c1c6;
   --border:#b9b9bf; --chip-border:#adadb3; --text:#17171a; --muted:#4a4a50; --muted2:#333338; --desc:#26262c; --hint:#55555c;
   --chip-bg:#e4e4e8; --chip-active-bg:#17171a; --chip-active-text:#f2f2f4; --chip-active-border:#17171a;
   --avatar-border:#17171a; --tile-bg:#ffffff;
 }
-[data-theme="dark"]{
+html[data-theme="dark"]{
   --bg:#000000; --shell:#000000; --top:#000000; --surface:#111111; --softer:#1c1c1e;
   --border:#262626; --chip-border:#333333; --text:#f5f5f5; --muted:#a8a8a8; --muted2:#cfcfcf; --desc:#d0d0d0; --hint:#8a8a8a;
   --chip-bg:#161616; --chip-active-bg:#f5f5f5; --chip-active-text:#111111; --chip-active-border:#f5f5f5;
@@ -44,14 +44,17 @@ html,body{margin:0;padding:0}
 body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;overflow-x:hidden}
 .shell{max-width:480px;margin:0 auto;min-height:100dvh;background:var(--shell);position:relative}
 @media(min-width:520px){.shell{border-left:1px solid var(--border);border-right:1px solid var(--border)}}
-.theme-strip{display:flex;align-items:center;height:26px;padding:0 14px;background:var(--top);width:100%;border:0;border-bottom:1px solid var(--border);font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);cursor:pointer;font-family:inherit;text-align:left;user-select:none}
-.theme-strip:hover{color:var(--text)}
+.tt-grp{display:flex;gap:8px;align-items:center;padding:0;background:transparent;border:0;border-radius:0}
+.tbtn{width:34px;height:34px;border-radius:0;border:0;background:transparent;color:var(--text);font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;transition:transform .15s}
+.tbtn:hover{transform:scale(1.15)}
+.tbtn.active{color:#0A84FF}
 .top{position:sticky;top:0;z-index:30;background:var(--top);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:12px 16px;gap:10px}
 .logo-name{display:flex;align-items:center;gap:10px}
 .logo-img{width:32px;height:32px;border-radius:50%;display:block}
 .brand{font-weight:800;font-size:19px;letter-spacing:-.02em}
-.top-right{display:flex;gap:10px;align-items:center}
-.icon-btn,.dots{display:flex;align-items:center;justify-content:center;border:1px solid var(--chip-border);border-radius:50%;width:36px;height:36px;font-size:17px;color:var(--text);background:transparent;cursor:pointer;text-decoration:none}
+.top-right{display:flex;gap:12px;align-items:center}
+.icon-btn{display:flex;align-items:center;justify-content:center;border:0;border-radius:0;width:34px;height:34px;font-size:17px;color:var(--text);background:transparent;cursor:pointer;text-decoration:none}
+.dots-btn{display:flex;align-items:center;justify-content:center;border:0;border-radius:0;width:36px;height:36px;font-size:19px;color:var(--text);background:transparent;cursor:pointer;line-height:1}
 .dots{font-weight:800;font-size:20px;line-height:1}
 .fav-badge{position:absolute;top:-5px;right:-5px;background:#c00;color:#fff;font-size:10px;border-radius:999px;min-width:18px;height:18px;display:flex;align-items:center;justify-content:center;padding:0 4px;font-weight:700}
 .fav-wrap{position:relative;display:flex}
@@ -59,7 +62,8 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 .avatar{width:96px;height:96px;border-radius:50%;border:2px solid var(--avatar-border);flex:none;object-fit:cover;background:#000}
 .pstats{display:flex;gap:20px}
 .pstat b{display:block;font-size:17px;letter-spacing:-.01em}
-.pstat span{font-size:11.5px;color:var(--muted2)}
+.pstat span{display:block;font-size:11.5px;color:var(--muted2);line-height:1.15}
+.pstat small{display:block;font-size:9px;color:var(--muted);font-weight:400;line-height:1.3;letter-spacing:.02em;margin-top:1px}
 .pname{padding:2px 16px 0;font-weight:800;font-size:16px;letter-spacing:-.01em}
 .pdesc{padding:6px 16px 0;font-size:13.5px;line-height:1.62;white-space:pre-line;color:var(--text)}
 .pdesc .grey{color:var(--muted2)}
@@ -85,7 +89,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 .tile{position:relative;aspect-ratio:4/5;background:var(--tile-bg);border:0;padding:0;cursor:pointer;overflow:hidden}
 .tile img{width:100%;height:100%;object-fit:contain;display:block}
 .mocktag{position:absolute;right:6px;bottom:6px;padding:3px 9px;font-size:11.5px;font-weight:700;color:#fff;background:rgba(0,0,0,.62);border-radius:999px}
-.fav-btn-tile{position:absolute;top:6px;right:6px;z-index:2;background:rgba(255,255,255,.88);border:0;border-radius:999px;width:28px;height:28px;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.fav-btn-tile{position:absolute;top:6px;right:6px;z-index:2;background:transparent;border:0;width:30px;height:30px;font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center}
 .empty{padding:60px 24px;text-align:center;color:var(--muted)}
 .empty b{display:block;font-size:18px;color:var(--text);margin-bottom:8px}
 .hint-load{padding:80px 16px;text-align:center;color:var(--muted)}
@@ -98,7 +102,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 .car::-webkit-scrollbar{display:none}
 .slide{flex:0 0 100%;scroll-snap-align:center;display:flex;align-items:center;justify-content:center;position:relative;background:var(--softer)}
 .slide img{max-width:100%;max-height:100%;width:100%;height:100%;object-fit:contain}
-.dots{position:absolute;bottom:12px;left:0;right:0;display:flex;justify-content:center;gap:6px}
+.viewer .dots{position:absolute;bottom:12px;left:0;right:0;display:flex;justify-content:center;gap:6px}
 .dot{width:6px;height:6px;border-radius:50%;background:var(--border)}
 .dot.on{background:var(--text)}
 .bar{display:flex;align-items:center;gap:18px;padding:13px 16px;border-bottom:1px solid var(--border)}
@@ -140,15 +144,19 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 </head>
 <body>
 <div class="shell">
-  <button class="theme-strip" id="themeToggle" aria-label="Переключить тему">Тема: ЧЁРНАЯ</button>
   <div class="top">
     <div class="logo-name">
       <img class="logo-img" src="logo.png" alt="D|H Detsky Hit">
       <div class="brand">Detsky Hit</div>
     </div>
     <div class="top-right">
+      <div class="tt-grp" role="group" aria-label="Тема">
+        <button class="tbtn" data-theme="light" title="Белая тема" aria-label="Белая тема"><svg viewBox="0 0 24 24" width="21" height="21" aria-hidden="true"><circle cx="12" cy="12" r="4.2" fill="currentColor"/><path d="M12 2v2.6M12 19.4V22M2 12h2.6M19.4 12H22M4.4 4.4l1.9 1.9M17.7 17.7l1.9 1.9M4.4 19.6l1.9-1.9M17.7 6.3l1.9-1.9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+        <button class="tbtn" data-theme="gray" title="Серая тема" aria-label="Серая тема"><svg viewBox="0 0 24 24" width="21" height="21" aria-hidden="true"><circle cx="12" cy="12" r="9.2" stroke="currentColor" stroke-width="2" fill="none"/><path d="M12 2.8a9.2 9.2 0 010 18.4z" fill="currentColor"/></svg></button>
+        <button class="tbtn" data-theme="dark" title="Чёрная тема" aria-label="Чёрная тема"><svg viewBox="0 0 24 24" width="21" height="21" aria-hidden="true"><path d="M20.3 14.5A8.6 8.6 0 019.5 3.7 8.6 8.6 0 1020.3 14.5z" fill="currentColor"/></svg></button>
+      </div>
       <div class="fav-wrap"><button class="icon-btn" id="showFavBtn" aria-label="Избранное">❤</button><span class="fav-badge" id="favBadge" hidden>0</span></div>
-      <button class="dots" id="dotsBtn" title="Меню" aria-label="Меню">⋮</button>
+      <button class="dots-btn" id="dotsBtn" title="Меню" aria-label="Меню">⋮</button>
     </div>
   </div>
 
@@ -170,9 +178,9 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
   <section class="profile">
     <img class="avatar" src="logo.png" alt="D|H for teenagers">
     <div class="pstats">
-      <div class="pstat"><b id="stProducts">0</b><span>публикаций</span></div>
-      <div class="pstat"><b id="stFollowers">0</b><span>подписчиков</span></div>
-      <div class="pstat"><b id="stVisits">0</b><span>посещения</span></div>
+      <div class="pstat"><b id="stPosts">0</b><span>публикаций<br><small>Instagram</small></span></div>
+      <div class="pstat"><b id="stFollowers">0</b><span>подписчиков<br><small>Instagram</small></span></div>
+      <div class="pstat"><b id="stModels">0</b><span>моделей в наличии<br><small>на сайте</small></span></div>
     </div>
   </section>
   <div class="pname">DETSKY HIT</div>
@@ -187,7 +195,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
     <span>Новая коллекция уже в продаже</span>
   </div>
   <div class="cta">
-    <a class="btn primary" id="ctaSubscribe" href="#">Подписаться</a>
+    <a class="btn primary" id="ctaSubscribe" href="https://instagram.com/detsky_hit" target="_blank" rel="noopener">Подписаться</a>
     <a class="btn grey" id="ctaMessage" href="#">Сообщение</a>
     <button class="btn grey" id="ctaContacts">Контакты</button>
     <button class="btn grey icon" id="ctaShare" title="Поделиться" aria-label="Поделиться">↗</button>
@@ -211,23 +219,17 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 <script>
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const THEMES = ['dark', 'light', 'gray'];
-const THEME_LABEL = { light: 'Тема: БЕЛАЯ', gray: 'Тема: СЕРАЯ', dark: 'Тема: ЧЁРНАЯ' };
 const THEME_COLOR = { light: '#ffffff', gray: '#d8d8dc', dark: '#000000' };
 function applyTheme(t) {
   document.documentElement.dataset.theme = t;
-  const btn = $('themeToggle');
-  if (btn) btn.textContent = THEME_LABEL[t] || THEME_LABEL.dark;
+  document.querySelectorAll('.tbtn').forEach(b => b.classList.toggle('active', b.dataset.theme === t));
   try { localStorage.setItem('dh-theme', t); } catch (e) {}
   const m = document.querySelector('meta[name="theme-color"]');
   if (m) m.setAttribute('content', THEME_COLOR[t] || '#000000');
 }
 {
   const initial = document.documentElement.dataset.theme || 'dark';
-  $('themeToggle').onclick = () => {
-    const i = THEMES.indexOf(document.documentElement.dataset.theme || 'dark');
-    applyTheme(THEMES[(i + 1) % THEMES.length]);
-  };
+  document.querySelectorAll('.tbtn').forEach(b => b.addEventListener('click', () => applyTheme(b.dataset.theme)));
   applyTheme(initial);
 }
 
@@ -238,10 +240,29 @@ const CAT_FILTER = [
   ['рубашки', 'Рубашки', 'img/img-20261020-wa2797.jpg'],
   ['штаны', 'Штаны', 'img/shtany-beige.jpg'],
 ];
+// --- seasons & product flags stored inside settings JSON (no DB schema change) ---
+const SEASON_KEYS = ['зима', 'осень', 'весна', 'лето'];
+const SEASON_LABEL = { 'зима': 'Зима', 'осень': 'Осень', 'весна': 'Весна', 'лето': 'Лето', '': 'Всесезонная' };
+const SEASON_ICON = { 'зима': '❄', 'осень': '🍂', 'весна': '🌸', 'лето': '☀', '': '🔁' };
+function parseJSON(s, fb) { try { const v = JSON.parse(s); return v === null || v === undefined ? fb : v; } catch (e) { return fb; } }
+function seasonsEnabled() { return parseJSON(SETTINGS.seasons_enabled, SEASON_KEYS.slice()); }
+function circleOrder() { return parseJSON(SETTINGS.hl_order, CAT_FILTER.map(([k]) => k)); }
+function productMeta() { return parseJSON(SETTINGS.product_meta, {}); }
+function visibleProducts() {
+  const enabled = new Set(seasonsEnabled());
+  const meta = productMeta();
+  return PRODUCTS.filter(p => {
+    const m = meta[p.id] || {};
+    if (m.active === false) return false;
+    const season = m.season === undefined ? 'зима' : m.season;
+    if (!season) return true;
+    return enabled.has(season);
+  });
+}
 const FAVS_KEY = 'detskyhit_favs';
 
 let PRODUCTS = [];
-let SETTINGS = { name: 'Detsky Hit', tagline: 'детская одежда', whatsapp: '77015300491', address: '', hours: '', bio: '', city: '', buttonWhatsapp: 'Написать в WhatsApp', buttonDirect: 'Написать в Директ' };
+let SETTINGS = { name: 'Detsky Hit', tagline: 'детская одежда', whatsapp: '77015300491', instagram: 'detsky_hit', instagram_posts: '0', instagram_followers: '0', address: '', hours: '', bio: '', city: '', buttonWhatsapp: 'Написать в WhatsApp', buttonDirect: 'Написать в Директ' };
 
 function getFavs() { try { return JSON.parse(localStorage.getItem(FAVS_KEY) || '[]'); } catch { return []; } }
 function setFavs(a) { localStorage.setItem(FAVS_KEY, JSON.stringify(a)); }
@@ -251,25 +272,46 @@ function fmtPrice(p) { const n = Number(String(p).replace(/\D/g, '')); return is
 function renderTop() {
   $('bio').textContent = SETTINGS.bio || '';
   const wa = String(SETTINGS.whatsapp || '').replace(/\D/g, '') || '77015300491';
-  $('ctaSubscribe').href = 'https://wa.me/' + wa + '?text=' + encodeURIComponent('Здравствуйте! Хочу получать новинки Detsky Hit');
+  const ig = String(SETTINGS.instagram || 'detsky_hit').replace(/^@|\s+/g, '') || 'detsky_hit';
+  $('ctaSubscribe').href = 'https://instagram.com/' + ig;
   $('ctaMessage').href = 'https://wa.me/' + wa;
-  $('stProducts').textContent = PRODUCTS.length;
-  $('stFollowers').textContent = '0'; // TODO: реальные подписчики после запуска регистрации
-  $('stVisits').textContent = '0'; // TODO: реальные посещения из Web Analytics
+  $('stModels').textContent = visibleProducts().length;
+  $('stPosts').textContent = SETTINGS.instagram_posts || '0';
+  $('stFollowers').textContent = SETTINGS.instagram_followers || '0';
+  fetch('/api/insta-stats')
+    .then(r => r.ok ? r.json() : null)
+    .then(d => {
+      if (!d || !d.ok) return;
+      $('stPosts').textContent = Number(d.posts || 0).toLocaleString('ru-RU');
+      $('stFollowers').textContent = Number(d.followers || 0).toLocaleString('ru-RU');
+    })
+    .catch(() => {});
 }
 const gridEl = $('grid');
 let curCat = 'all';
-const filtered = () => curCat === 'all' ? PRODUCTS : PRODUCTS.filter(p => p.category === curCat);
+const filtered = () => { const base = visibleProducts(); return curCat === 'all' ? base : base.filter(p => p.category === curCat); };
 const thumbOf = p => { if (!p) return ''; if (/^https?:\/\//i.test(p)) return p; const base = p.split('/').pop(); return 'thumbs/' + base.replace(/\.(jpg|jpeg|png|webp)$/i, '.jpg'); };
 
 function renderHlbar() {
   const nav = $('hlbar');
-  nav.innerHTML = CAT_FILTER.map(([k, l, img]) => `<button class="hl${k === curCat ? ' active' : ''}" data-cat="${k}"><span class="hl-circle"><img src="${img}" alt="${l}"></span><span>${l}</span></button>`).join('');
+  const visible = visibleProducts();
+  const counts = {};
+  for (const p of visible) counts[p.category] = (counts[p.category] || 0) + 1;
+  const order = circleOrder();
+  const byKey = Object.fromEntries(CAT_FILTER.map(([k, l, img]) => [k, [k, l, img]]));
+  nav.innerHTML = order
+    .map(k => byKey[k])
+    .filter(Boolean)
+    .filter(([k]) => k === 'all' ? visible.length > 0 : (counts[k] || 0) > 0)
+    .map(([k, l, img]) => `<button class="hl${k === curCat ? ' active' : ''}" data-cat="${k}"><span class="hl-circle"><img src="${img}" alt="${l}"></span><span>${l}</span></button>`)
+    .join('');
   nav.querySelectorAll('.hl').forEach(b => b.addEventListener('click', () => {
     curCat = b.dataset.cat;
     nav.querySelectorAll('.hl').forEach(x => x.classList.toggle('active', x === b));
     renderGrid();
   }));
+  // if current category was filtered out, reset to All
+  if (!nav.querySelector('.hl.active')) curCat = 'all';
 }
 
 function renderGrid() {

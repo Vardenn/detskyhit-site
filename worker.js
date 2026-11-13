@@ -3,6 +3,9 @@
 // - /api/catalog и /.netlify/functions/catalog: читает/пишет каталог в Supabase
 const CATALOG_PATHS = new Set(['/api/catalog', '/.netlify/functions/catalog']);
 const UPLOAD_PATHS = new Set(['/api/upload']);
+const INSTA_STATS_PATHS = new Set(['/api/insta-stats']);
+const INSTA_HANDLE = 'detsky_hit';
+const INSTA_TTL_MS = 60 * 60 * 1000; // обновляем не чаще, чем раз в час
 
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -94,6 +97,56 @@ async function handleCatalog(request, env) {
   return json({ error: 'Method' }, 405);
 }
 
+
+async function fetchInstagramStats() {
+  try {
+    const res = await fetch(`https://www.instagram.com/${INSTA_HANDLE}/`, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)' },
+    });
+    if (!res.ok) return null;
+    const body = await res.text();
+    const m = body.match(/([\d,]+)\s+Followers,\s*([\d,]+)\s+Following,\s*([\d,]+)\s+Posts/);
+    if (!m) return null;
+    const n = s => Number(String(s).replace(/,/g, '')) || 0;
+    return { followers: n(m[1]), following: n(m[2]), posts: n(m[3]) };
+  } catch (e) {
+    return null;
+  }
+}
+
+async function instaStats(env) {
+  const rows = await supa(env, 'settings?select=*&key=in.(instagram_followers,instagram_following,instagram_posts,insta_fetched_at)');
+  const map = {};
+  if (rows.status === 200) {
+    try {
+      for (const r of JSON.parse(rows.text)) map[r.key] = r.value;
+    } catch {}
+  }
+  const fetched = Number(map.insta_fetched_at || 0);
+  const cached = {
+    followers: +map.instagram_followers || 0,
+    following: +map.instagram_following || 0,
+    posts: +map.instagram_posts || 0,
+    fetchedAt: fetched || null,
+  };
+  if (Date.now() - fetched < INSTA_TTL_MS && map.instagram_followers !== undefined) {
+    return { ok: true, ...cached, fromCache: true };
+  }
+  const fresh = await fetchInstagramStats();
+  if (fresh) {
+    const now = Date.now();
+    const rows2 = [
+      { key: 'instagram_followers', value: String(fresh.followers) },
+      { key: 'instagram_following', value: String(fresh.following) },
+      { key: 'instagram_posts', value: String(fresh.posts) },
+      { key: 'insta_fetched_at', value: String(now) },
+    ];
+    await supa(env, 'settings', { method: 'POST', body: rows2, prefer: 'resolution=merge-duplicates' });
+    return { ok: true, ...fresh, fetchedAt: now, fromCache: false };
+  }
+  return { ok: true, ...cached, fromCache: true, stale: true };
+}
+
 async function handleUpload(request, env) {
   if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY) {
     return json({ error: 'Сервер не настроен: SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY' }, 500);
@@ -142,6 +195,9 @@ export default {
     }
     if (UPLOAD_PATHS.has(url.pathname)) {
       return handleUpload(request, env);
+    }
+    if (INSTA_STATS_PATHS.has(url.pathname)) {
+      return json(await instaStats(env));
     }
     return env.ASSETS.fetch(request);
   },
