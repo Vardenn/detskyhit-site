@@ -119,9 +119,18 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 .s{font-size:13px;margin-top:8px}
 .desc{font-size:13px;color:var(--desc);margin-top:8px;white-space:pre-line;line-height:1.6}
 .hint{margin-top:12px;color:var(--hint);font-size:12px;text-align:center}
+.heart-ic{display:block}
+.fav-footer{display:flex;gap:10px;align-items:center;justify-content:space-between;margin-top:16px}
+.fav-footer .fav-back{margin-top:0}
+.fav-note{font-size:13px;color:var(--muted);margin:0 0 12px}
+.pick{position:relative;flex:none;align-self:center;cursor:pointer;padding:6px}
+.pick input{position:absolute;opacity:0;width:100%;height:100%;margin:0;cursor:pointer;z-index:1}
+.pick-dot{width:22px;height:22px;border-radius:50%;border:2px solid var(--muted2);display:block;transition:all .15s}
+.pick input:checked + .pick-dot{background:#0A84FF;border-color:#0A84FF;box-shadow:inset 0 0 0 3.5px var(--surface)}
 .fav-list-wrap{padding:16px;background:var(--shell)}
-.fav-title{font-weight:700;font-size:18px;margin-bottom:12px}
+.fav-title{font-weight:700;font-size:18px;margin-bottom:4px}
 .fav-item{display:flex;gap:12px;border:1px solid var(--border);border-radius:12px;padding:8px;background:var(--surface);margin-bottom:10px;align-items:center}
+.fav-item.selected{border-color:#0A84FF}
 .fav-item img{width:90px;height:112px;object-fit:contain;background:var(--softer);border-radius:8px}
 .price{font-weight:700;margin-top:4px}
 .fav-remove{border:0;background:var(--softer);color:var(--text);border-radius:8px;padding:6px 10px;font-size:12px;cursor:pointer;margin-top:6px}
@@ -155,7 +164,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
         <button class="tbtn" data-theme="gray" title="Серая тема" aria-label="Серая тема"><svg viewBox="0 0 24 24" width="21" height="21" aria-hidden="true"><circle cx="12" cy="12" r="9.2" stroke="currentColor" stroke-width="2" fill="none"/><path d="M12 2.8a9.2 9.2 0 010 18.4z" fill="currentColor"/></svg></button>
         <button class="tbtn" data-theme="dark" title="Чёрная тема" aria-label="Чёрная тема"><svg viewBox="0 0 24 24" width="21" height="21" aria-hidden="true"><path d="M20.3 14.5A8.6 8.6 0 019.5 3.7 8.6 8.6 0 1020.3 14.5z" fill="currentColor"/></svg></button>
       </div>
-      <div class="fav-wrap"><button class="icon-btn" id="showFavBtn" aria-label="Избранное">❤</button><span class="fav-badge" id="favBadge" hidden>0</span></div>
+      <div class="fav-wrap"><button class="icon-btn" id="showFavBtn" aria-label="Избранное"><svg class="heart-ic" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="currentColor" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/></svg></button><span class="fav-badge" id="favBadge" hidden>0</span></div>
       <button class="dots-btn" id="dotsBtn" title="Меню" aria-label="Меню">⋮</button>
     </div>
   </div>
@@ -198,7 +207,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
     <a class="btn primary" id="ctaSubscribe" href="https://instagram.com/detsky_hit" target="_blank" rel="noopener">Подписаться</a>
     <a class="btn grey" id="ctaMessage" href="#">Сообщение</a>
     <button class="btn grey" id="ctaContacts">Контакты</button>
-    <button class="btn grey icon" id="ctaShare" title="Поделиться" aria-label="Поделиться">↗</button>
+    <button class="btn grey icon" id="ctaShare" title="Поделиться" aria-label="Поделиться"><svg viewBox="0 0 256 256" width="20" height="20" fill="currentColor" aria-hidden="true"><path d="M227.32,28.68a16,16,0,0,0-15.66-4.08l-.15,0L19.57,82.84a16,16,0,0,0-2.49,29.8L102,154l41.3,84.87A15.86,15.86,0,0,0,157.74,248q.69,0,1.38-.06a15.88,15.88,0,0,0,14-11.51l58.2-191.94c0-.05,0-.1,0-.15A16,16,0,0,0,227.32,28.68ZM157.83,231.85l-.05.14,0-.07-40.06-82.3,48-48a8,8,0,0,0-11.31-11.31l-48,48L24.08,98.25l-.07,0,.14,0L216,40Z"></path></svg></button>
   </div>
 
   <nav class="hlbar" id="hlbar"></nav>
@@ -212,8 +221,12 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 
 <section class="fav-list-wrap" id="favoritesSection" hidden>
   <div class="fav-title">❤ Избранное</div>
+  <div class="fav-note">Отметьте точки — до 5 карточек можно отправить другу</div>
   <div id="favList"></div>
-  <button class="fav-back" id="favClose">Назад в каталог</button>
+  <div class="fav-footer">
+    <button class="fav-back" id="favClose">Назад в каталог</button>
+    <button class="fav-back" id="favShare">Поделиться</button>
+  </div>
 </section>
 
 <script>
@@ -260,6 +273,10 @@ function visibleProducts() {
   });
 }
 const FAVS_KEY = 'detskyhit_favs';
+const HEART = (fill, stroke, size) => `<svg class="heart-ic" viewBox="0 0 24 24" width="${size || 22}" height="${size || 22}" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="${fill}" stroke="${stroke}" stroke-width="1.9" stroke-linejoin="round"/></svg>`;
+const HEART_FILLED = HEART('currentColor', 'currentColor', 20);
+const HEART_RED = HEART('#d63b3b', '#d63b3b', 15);
+const HEART_WHITE = `<svg class="heart-ic" viewBox="0 0 24 24" width="21" height="21" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="none" stroke="#ffffff" stroke-width="4.3" stroke-linejoin="round"/><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="none" stroke="#111111" stroke-width="1.9" stroke-linejoin="round"/></svg>`;
 
 let PRODUCTS = [];
 let SETTINGS = { name: 'Detsky Hit', tagline: 'детская одежда', whatsapp: '77015300491', instagram: 'detsky_hit', instagram_posts: '0', instagram_followers: '0', address: '', hours: '', bio: '', city: '', buttonWhatsapp: 'Написать в WhatsApp', buttonDirect: 'Написать в Директ' };
@@ -321,7 +338,7 @@ function renderGrid() {
   gridEl.innerHTML = list.map(p => `
     <div class="tile" data-id="${esc(p.id)}">
       <img src="${esc(thumbOf(p.images?.[0] || ''))}" loading="lazy" decoding="async" alt="${esc(p.title || p.article)}">
-      <button class="fav-btn-tile" data-id="${esc(p.id)}" aria-label="В избранное">${favs.includes(p.id) ? '❤' : '🤍'}</button>
+      <button class="fav-btn-tile" data-id="${esc(p.id)}" aria-label="В избранное">${favs.includes(p.id) ? HEART_RED : HEART_WHITE}</button>
       <span class="mocktag">${fmtPrice(p.price)}</span>
     </div>`).join('');
 }
@@ -351,7 +368,7 @@ function openViewer(id) {
         <div class="dots">${(p.images || []).map((_, i) => `<span class="dot${i === 0 ? ' on' : ''}"></span>`).join('')}</div>
       </div>
       <div class="bar">
-        <button class="icon-btn2 fav-btn" id="favBtn">${favs.includes(p.id) ? '❤' : '🤍'}<span class="cnt" id="favCnt">${favs.length}</span></button>
+        <button class="icon-btn2 fav-btn" id="favBtn"><span id="favHeart">${favs.includes(p.id) ? HEART_RED : HEART_WHITE}</span><span class="cnt" id="favCnt">${favs.length}</span></button>
         <a class="direct" id="waBtn" target="_blank" rel="noopener">💬 ${esc(SETTINGS.buttonWhatsapp || 'Написать в WhatsApp')}</a>
       </div>
       <div class="cap">
@@ -366,7 +383,7 @@ function openViewer(id) {
   $('favBtn').addEventListener('click', () => {
     let favs = getFavs();
     if (favs.includes(p.id)) favs = favs.filter(x => x !== p.id); else favs.push(p.id);
-    setFavs(favs); $('favBtn').firstChild.textContent = favs.includes(p.id) ? '❤' : '🤍';
+    setFavs(favs); $('favHeart').innerHTML = favs.includes(p.id) ? HEART_RED : HEART_WHITE;
     $('favCnt').textContent = favs.length; favBadgeUpdate();
   });
   const slider = $('car-' + p.id);
@@ -381,7 +398,7 @@ $('showFavBtn').addEventListener('click', () => {
   const ids = getFavs();
   const favs = ids.map(id => PRODUCTS.find(p => p.id === id)).filter(Boolean);
   $('favList').innerHTML = favs.length
-    ? favs.map(p => `<div class="fav-item"><img src="${esc(p.images?.[0] || '')}" alt="${esc(p.title || p.article)}"><div><b>${esc(p.title || p.article)}</b><div class="price">${fmtPrice(p.price)} · арт. ${esc(p.article)}</div><button class="fav-remove" data-id="${esc(p.id)}">Убрать</button></div></div>`).join('')
+    ? favs.map(p => `<div class="fav-item" data-card-id="${esc(p.id)}"><label class="pick"><input type="checkbox" class="pick-input" data-id="${esc(p.id)}"><span class="pick-dot"></span></label><img src="${esc((p.images?.[0]||'').startsWith('http') ? p.images[0] : '/' + (p.images?.[0]||''))}" alt="${esc(p.title||p.article)}"><div><b>${esc(p.title||p.article)}</b><div class="price">${fmtPrice(p.price)} · арт. ${esc(p.article)}</div><button class="fav-remove" data-id="${esc(p.id)}">Убрать</button></div></div>`).join('')
     : '<p style="color:#888">Вы ещё ничего не добавили в избранное.</p>';
   $('favoritesSection').hidden = false;
   document.querySelector('.shell').hidden = true;
@@ -393,6 +410,42 @@ $('favList').addEventListener('click', e => {
   setFavs(getFavs().filter(x => x !== b.dataset.id));
   $('showFavBtn').click();
 });
+$('favList').addEventListener('change', e => {
+  const input = e.target.closest('.pick-input'); if (!input) return;
+  const checked = [...$('favList').querySelectorAll('.pick-input:checked')];
+  if (checked.length > 5) { input.checked = false; showToast('Максимум 5 карточек'); return; }
+  checked.forEach(inp => inp.closest('.fav-item').classList.toggle('selected', inp.checked));
+});
+$('favShare').addEventListener('click', shareFavorites);
+async function shareFavorites() {
+  const ids = [...$('favList').querySelectorAll('.pick-input:checked')].slice(0, 5).map(i => i.dataset.id);
+  if (!ids.length) { showToast('Отметьте точки — какие карточки отправить'); return; }
+  const favs = ids.map(id => PRODUCTS.find(p => p.id === id)).filter(Boolean);
+  const origin = location.origin;
+  const cards = favs.map((p, i) => {
+    const photos = (p.images || []).map(img => (img.startsWith('http') ? img : origin + '/' + img)).join('\n');
+    const sizesLine = p.sizes && p.sizes.length ? '\nРазмеры: ' + p.sizes.join(', ') : '';
+    return `${i + 1}. ${p.title || p.id} (арт. ${p.article})\nЦена: ${fmtPrice(p.price)}${sizesLine}\n${photos}`;
+  }).join('\n\n');
+  const text = `🧥 Detsky Hit — мой список\n${cards}`;
+  try {
+    if (navigator.share) { await navigator.share({ title: 'Detsky Hit', text }); return; }
+  } catch (err) { /* пользователь закрыл окно или браузер не поддерживает */ }
+  // fallback: выделение текста + execCommand
+  const box = document.createElement('textarea');
+  box.value = text;
+  box.readOnly = true;
+  box.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0';
+  document.body.appendChild(box);
+  box.focus(); box.select(); box.setSelectionRange(0, 99999);
+  try {
+    const ok = document.execCommand('copy');
+    showToast(ok ? 'Список скопирован' : 'Выделите текст в окне');
+  } catch (e3) {
+    showToast('Не получилось поделиться');
+  }
+  document.body.removeChild(box);
+}
 
 // --- ⋮ menu, modals, share ---
 const INFO = {
