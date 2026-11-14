@@ -43,6 +43,18 @@ button.small{padding:6px 12px;font-size:12px}
 .hl-order-item .hl-arrows{display:flex;flex-direction:column;gap:2px}
 .hl-order-item .hl-arrows button{width:26px;height:18px;border:1px solid #ddd;background:#fff;border-radius:6px;font-size:11px;cursor:pointer;line-height:1}
 .hl-order-item.dragging{opacity:.45}
+
+.hl-edit-list{display:flex;flex-direction:column;gap:6px;margin-top:4px}
+.hl-edit{display:flex;align-items:center;gap:10px;border:1px solid #e2e2e2;background:#fafafa;border-radius:10px;padding:8px}
+.hl-edit img{width:38px;height:38px;border-radius:50%;object-fit:cover;background:#fff;border:1px solid #ddd;flex:none}
+.hl-edit input[type=text]{flex:1;min-width:0;border:1px solid #ddd;border-radius:8px;padding:7px 10px;font-size:13px;font-family:inherit}
+.hl-edit select{border:1px solid #ddd;border-radius:8px;padding:7px 8px;font-size:12px;font-family:inherit;background:#fff}
+.hl-edit-arrows{display:flex;flex-direction:column;gap:2px}
+.hl-edit-arrows button{width:26px;height:18px;border:1px solid #ddd;background:#fff;border-radius:6px;font-size:11px;cursor:pointer;line-height:1}
+.hl-edit-del{border:0;background:#fbf0ef;color:#c00;border-radius:6px;width:32px;height:32px;font-size:16px;cursor:pointer}
+.hl-set-img{border:0;background:#f4f4f4;border-radius:6px;width:32px;height:32px;font-size:16px;cursor:pointer}
+.hl-add{border:1px dashed #aaa;background:#fff;color:#333;border-radius:10px;padding:8px 12px;font-size:13px;font-weight:600;cursor:pointer;margin-top:6px}
+
 .product-item.is-off{opacity:.55}
 .product-item.is-off img{filter:grayscale(1)}
 
@@ -133,9 +145,10 @@ button.small{padding:6px 12px;font-size:12px}
         <button class="season-toggle active" data-s="лето">☀ Лето</button>
       </div>
       <p class="hint">Выключенный сезон скрывает его товары с сайта. Кружки в «Актуальном» исчезают автоматически, если по категории пусто.</p>
-      <label style="margin-top:14px">Порядок кружков «Актуальное» на сайте</label>
-      <div class="hl-order-list" id="hlOrderList"></div>
-      <p class="hint">Перетаскивайте мышью или пальцем (или стрелками). Новый порядок — после «Сохранить настройки».</p>
+      <label style="margin-top:14px">«Актуальное» на сайте — названия, фото, порядок</label>
+      <p class="hint">Красной кистью — удалить. ⇅ — поднять/опустить. 🖼 — сменить фото (первое — лого магазина).</p>
+      <div class="hl-edit-list" id="hlEditList"></div>
+      <button class="hl-add" id="hlAddBtn" type="button">+ Новый кружок</button>
       <div class="row"><button id="saveSettingsBtn">Сохранить настройки</button><span id="settingsStatus" class="ok"></span></div>
       <hr style="border:none;border-top:1px solid #eee;margin:14px 0">
       <label>Сменить пароль</label><input type="password" id="newPwd" placeholder="Новый пароль">
@@ -199,11 +212,9 @@ let currentId = null;
 let dragEl = null;
 const SEASON_KEYS = ['зима','осень','весна','лето'];
 const SEASON_EMOJI = { 'зима':'❄', 'осень':'🍂', 'весна':'🌸', 'лето':'☀', '':'🔁' };
-const CAT_FILTERS = [['all','Все','logo.png'],['куртки','Куртки','img/kurtka-black.jpg'],['худи','Свитшоты','img/hoodie-black.jpg'],['рубашки','Рубашки','img/img-20261020-wa2797.jpg'],['штаны','Штаны','img/shtany-beige.jpg']];
 const parseJSON = (s, fb) => { try { const v = JSON.parse(s); return v === null || v === undefined ? fb : v; } catch { return fb; } };
 const productMeta = () => parseJSON(SETTINGS.product_meta, {});
 const seasonsEnabled = () => parseJSON(SETTINGS.seasons_enabled, SEASON_KEYS.slice());
-const circleOrder = () => parseJSON(SETTINGS.hl_order, CAT_FILTERS.map(([k]) => k));
 let listFilter = 'all';
 
 const API = '/api/catalog';
@@ -392,23 +403,83 @@ function renderSeasonToggles(){
   $('seasonToggles').querySelectorAll('.season-toggle').forEach(b => b.classList.toggle('active', en.has(b.dataset.s)));
 }
 $('seasonToggles').addEventListener('click', e => { const b = e.target.closest('.season-toggle'); if(!b) return; b.classList.toggle('active'); });
-function renderHlOrder(){
-  const imgs = Object.fromEntries(CAT_FILTERS.map(([k,l,img]) => [k, [l, img]]));
-  $('hlOrderList').innerHTML = circleOrder().map(k => { const [l, img] = imgs[k] || [k, '']; return `<div class="hl-order-item" draggable="true" data-k="${k}"><img src="/${img}" alt=""><span class="hl-name">${esc(l)}</span><div class="hl-arrows"><button type="button" data-dir="-1" aria-label="Выше">▲</button><button type="button" data-dir="1" aria-label="Ниже">▼</button></div></div>`; }).join('');
+let HL_ROWS = [];
+const HL_DEFAULTS = () => ([
+  { key:'all', label:'Все', img:'logo.png', category:'all' },
+  { key:'куртки', label:'Куртки', img:'img/kurtka-black.jpg', category:'куртки' },
+  { key:'худи', label:'Свитшоты', img:'img/hoodie-black.jpg', category:'худи' },
+  { key:'рубашки', label:'Рубашки', img:'img/img-20261020-wa2797.jpg', category:'рубашки' },
+  { key:'штаны', label:'Штаны', img:'img/shtany-beige.jpg', category:'штаны' },
+]);
+function parseHighlights() {
+  try {
+    const raw = SETTINGS.highlights;
+    const arr = raw ? JSON.parse(raw) : null;
+    if (Array.isArray(arr) && arr.length) return arr.map((r, i) => ({ key: r.key || ('hl-' + i), label: String(r.label || 'Без названия'), img: String(r.img || 'logo.png'), category: String(r.category || 'all') }));
+  } catch (e) {}
+  return HL_DEFAULTS();
 }
-$('hlOrderList').addEventListener('click', e => {
-  const b = e.target.closest('.hl-arrows button'); if(!b) return;
-  const item = b.closest('.hl-order-item'); const k = item.dataset.k;
-  const order = circleOrder(); const i = order.indexOf(k); const j = i + Number(b.dataset.dir);
-  if (j < 0 || j >= order.length) return;
-  [order[i], order[j]] = [order[j], order[i]];
-  SETTINGS.hl_order = JSON.stringify(order);
-  renderHlOrder();
+function imgUrlHl(u) { return /^https?:\/\//i.test(u) ? u : '/' + u; }
+function renderHlEditor() {
+  const list = $('hlEditList');
+  list.innerHTML = HL_ROWS.map((row, i) => `
+    <div class="hl-edit" data-i="${i}">
+      <img src="${esc(imgUrlHl(row.img))}" alt="" class="hl-img-preview">
+      <input type="text" class="hl-label" value="${esc(row.label)}" data-i="${i}" placeholder="Название кружка" autocomplete="off" spellcheck="false">
+      <select class="hl-cat" data-i="${i}">
+        ${[['all','Все'],['куртки','Куртки'],['худи','Свитшоты'],['рубашки','Рубашки'],['штаны','Штаны']].map(([k,l]) => `<option value="${k}" ${row.category===k?'selected':''}>${l}</option>`).join('')}
+      </select>
+      <div class="hl-edit-arrows"><button type="button" class="hl-up" data-i="${i}">▲</button><button type="button" class="hl-down" data-i="${i}">▼</button></div>
+      <button type="button" class="hl-set-img" data-i="${i}" title="Сменить фото">🖼</button>
+      <button type="button" class="hl-edit-del" data-i="${i}" title="Удалить кружок">×</button>
+    </div>`).join('');
+  list.querySelectorAll('.hl-label').forEach(el => el.addEventListener('input', e => { HL_ROWS[Number(e.target.dataset.i)].label = e.target.value; invalidateHlSave(); }));
+  list.querySelectorAll('.hl-cat').forEach(el => el.addEventListener('change', e => { HL_ROWS[Number(e.target.dataset.i)].category = e.target.value; invalidateHlSave(); }));
+  list.querySelectorAll('.hl-up').forEach(btn => btn.addEventListener('click', e => {
+    const i = Number(e.currentTarget.dataset.i); if (i <= 0) return;
+    [HL_ROWS[i-1], HL_ROWS[i]] = [HL_ROWS[i], HL_ROWS[i-1]]; renderHlEditor(); invalidateHlSave();
+  }));
+  list.querySelectorAll('.hl-down').forEach(btn => btn.addEventListener('click', e => {
+    const i = Number(e.currentTarget.dataset.i); if (i >= HL_ROWS.length - 1) return;
+    [HL_ROWS[i+1], HL_ROWS[i]] = [HL_ROWS[i], HL_ROWS[i+1]]; renderHlEditor(); invalidateHlSave();
+  }));
+  list.querySelectorAll('.hl-edit-del').forEach(btn => btn.addEventListener('click', e => {
+    const i = Number(e.currentTarget.dataset.i);
+    HL_ROWS.splice(i, 1); renderHlEditor(); invalidateHlSave();
+  }));
+  list.querySelectorAll('.hl-set-img').forEach(btn => btn.addEventListener('click', e => {
+    window.__hlUploadIdx = Number(e.currentTarget.dataset.i);
+    $('hlImgInput').click();
+  }));
+}
+function invalidateHlSave() { $('settingsStatus').textContent = 'Есть изменения, не сохранено'; $('settingsStatus').style.color = '#c00'; }
+$('hlAddBtn').addEventListener('click', () => {
+  HL_ROWS.push({ key: 'hl-' + Date.now().toString(36), label: 'Новый кружок', img: 'logo.png', category: 'all' });
+  renderHlEditor();
+  invalidateHlSave();
 });
-let dragHl = null;
-$('hlOrderList').addEventListener('dragstart', e => { const it = e.target.closest('.hl-order-item'); if (!it) return; dragHl = it; it.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move'; });
-$('hlOrderList').addEventListener('dragover', e => { e.preventDefault(); if (!dragHl) return; const it = e.target.closest('.hl-order-item'); if (!it || it === dragHl) return; const rect = it.getBoundingClientRect(); const after = (e.clientY - rect.top) > rect.height / 2; it.parentNode.insertBefore(dragHl, after ? it.nextSibling : it); });
-$('hlOrderList').addEventListener('dragend', () => { if (!dragHl) return; dragHl.classList.remove('dragging'); SETTINGS.hl_order = JSON.stringify([...$('hlOrderList').querySelectorAll('.hl-order-item')].map(x => x.dataset.k)); dragHl = null; renderHlOrder(); });
+const hlImgInput = document.createElement('input');
+hlImgInput.type = 'file'; hlImgInput.accept = 'image/jpeg,image/png,image/webp,image/avif'; hlImgInput.id = 'hlImgInput'; hlImgInput.hidden = true;
+document.body.appendChild(hlImgInput);
+hlImgInput.addEventListener('change', async e => {
+  const file = e.target.files[0]; if (!file) return;
+  const idx = window.__hlUploadIdx; if (idx == null) return;
+  const status = $('settingsStatus'); status.textContent = 'Загружаю фото…'; status.style.color = '#555';
+  const dataUrl = await new Promise((res, rej) => { const fr = new FileReader(); fr.onload = () => res(String(fr.result)); fr.onerror = rej; fr.readAsDataURL(file); });
+  try {
+    const r = await fetch('/api/upload', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: PASSWORD, filename: file.name, contentType: file.type || 'image/jpeg', data: dataUrl }) });
+    const d = await r.json();
+    if (r.ok && d.ok && d.url) {
+      HL_ROWS[idx].img = d.url;
+      renderHlEditor();
+      status.textContent = 'Фото обновлено ✓'; status.style.color = '#0a7';
+    } else {
+      status.textContent = 'Ошибка: ' + (d.error || 'сервер'); status.style.color = '#c00';
+    }
+  } catch (err) { status.textContent = 'Ошибка сети'; status.style.color = '#c00'; }
+  e.target.value = '';
+});
+
 function renderSettings(){
   $('sName').value = SETTINGS.name || ''; $('sTagline').value = SETTINGS.tagline || ''; $('sBio').value = SETTINGS.bio || '';
   $('sAddress').value = SETTINGS.address || ''; $('sCity').value = SETTINGS.city || ''; $('sHours').value = SETTINGS.hours || '';
@@ -416,8 +487,8 @@ function renderSettings(){
 }
 $('saveSettingsBtn').onclick = async () => {
   const instaS = [...$('seasonToggles').querySelectorAll('.season-toggle.active')].map(x => x.dataset.s);
-  const instaO = [...$('hlOrderList').querySelectorAll('.hl-order-item')].map(x => x.dataset.k);
-  SETTINGS = { ...SETTINGS, seasons_enabled: JSON.stringify(instaS), hl_order: JSON.stringify(instaO), name:$('sName').value, tagline:$('sTagline').value, bio:$('sBio').value, address:$('sAddress').value, city:$('sCity').value, hours:$('sHours').value, whatsapp:$('sWhatsapp').value.replace(/\D/g,''), buttonWhatsapp:$('sButtonWa').value, instagram_posts:$('sInstaPosts').value, instagram_followers:$('sInstaFollowers').value, instagram:'detsky_hit' };
+  const instaO = JSON.stringify(HL_ROWS);
+  SETTINGS = { ...SETTINGS, seasons_enabled: JSON.stringify(instaS), highlights: instaO, name:$('sName').value, tagline:$('sTagline').value, bio:$('sBio').value, address:$('sAddress').value, city:$('sCity').value, hours:$('sHours').value, whatsapp:$('sWhatsapp').value.replace(/\D/g,''), buttonWhatsapp:$('sButtonWa').value, instagram_posts:$('sInstaPosts').value, instagram_followers:$('sInstaFollowers').value, instagram:'detsky_hit' };
   $('settingsStatus').textContent = 'Сохраняю…';
   const r = await fetch(API, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ password: PASSWORD, products: PRODUCTS, settings: SETTINGS }) });
   $('settingsStatus').textContent = r.ok ? 'Сохранено ✓' : 'Ошибка';
@@ -426,7 +497,7 @@ $('saveSettingsBtn').onclick = async () => {
 function openAdmin(){
   $('loginScreen').classList.add('hidden');
   $('adminScreen').classList.remove('hidden');
-  renderList(); renderSettings(); renderSeasonToggles(); renderHlOrder();
+  HL_ROWS = parseHighlights(); renderList(); renderSettings(); renderSeasonToggles(); renderHlEditor();
 }
 const saved = sessionStorage.getItem(PWD_KEY);
 if (saved){ PASSWORD = saved; fetch(API, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ password: saved }) }).then(r => r.json()).then(d => { if (d && d.ok){ PRODUCTS = d.products; SETTINGS = d.settings || {}; openAdmin(); } else { sessionStorage.removeItem(PWD_KEY); } }).catch(()=>{}); }
