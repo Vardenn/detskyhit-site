@@ -176,7 +176,7 @@ button.small{padding:6px 12px;font-size:12px}
         <div class="sizes" id="sizesBox"></div>
         <label style="margin-top:10px">Описание</label>
         <textarea id="fDescription"></textarea>
-        <label style="margin-top:10px">Фото (1–5). Первое — главное. Перетаскивайте для порядка.</label>
+        <label style="margin-top:10px">Фото (1–10). Первое — главное. Перетаскивайте для порядка.</label>
         <div class="photos" id="photoRow"></div>
         <div class="row">
           <label class="ghost" style="cursor:pointer;padding:8px 14px;border:1px solid #111;border-radius:8px">+ Добавить фото<input type="file" id="addPhotoInput" accept="image/*" multiple hidden></label>
@@ -333,7 +333,7 @@ $('addPhotoInput').addEventListener('change', async e => {
     fr.readAsDataURL(blob);
   });
   for (const f of files) {
-    if (p.images.length >= 5) break;
+    if (p.images.length >= 10) break;
     status.textContent = 'Загружаю «' + f.name + '»…'; status.style.color = '#555';
     try {
       const blob = await shrinkToBlob(f);
