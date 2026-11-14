@@ -572,7 +572,7 @@ function openViewer(id) {
       const blob = await shareCardImage(p, sizeSel);
       const file = new File([blob], 'detsky-hit-card.png', { type: 'image/png' });
       const pageUrl = location.origin + location.pathname + '#' + encodeURIComponent(p.id);
-      const data = { files: [file], title: p.title || p.article, text: `Detsky Hit — ${p.title || p.id}. ${fmtPrice(p.price)}. ${pageUrl}`, url: pageUrl };
+      const data = { files: [file], title: p.title || p.article, text: `Detsky Hit — ${p.title || p.id}. ${fmtPrice(p.price)}. ${pageUrl}` };
       if (navigator.canShare && navigator.canShare(data)) {
         await navigator.share(data);
         return;
