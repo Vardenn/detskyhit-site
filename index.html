@@ -437,7 +437,6 @@ function openViewer(id) {
   $('postCloseBtn').addEventListener('click', () => { viewer.hidden = true; });
 
   // ---------- share card template ----------
-  // ---------- share card template ----------
   const shareCardImage = (p, sizeSel) => new Promise(async resolve => {
     const W = 1080, H = 1350;
     const c = document.createElement('canvas');
@@ -565,6 +564,7 @@ function openViewer(id) {
     // done — encode PNG
     c.toBlob(b => resolve(b), 'image/png', 0.96);
   });
+  window.__shareCardImage = shareCardImage;
   const shareCard = async (p) => {
     const sizeSel = ($('sizesRow')?.querySelector('.ph-size.on') || {}).dataset?.s || '';
     showToast('Готовлю карточку…');
@@ -660,30 +660,42 @@ async function shareFavorites() {
   const ids = [...$('favList').querySelectorAll('.pick-input:checked')].slice(0, 5).map(i => i.dataset.id);
   if (!ids.length) { showToast('Отметьте точки — какие карточки отправить'); return; }
   const favs = ids.map(id => PRODUCTS.find(p => p.id === id)).filter(Boolean);
-  const origin = location.origin;
-  const cards = favs.map((p, i) => {
-    const photos = (p.images || []).map(img => (img.startsWith('http') ? img : origin + '/' + img)).join('\n');
-    const sizesLine = p.sizes && p.sizes.length ? '\nРазмеры: ' + p.sizes.join(', ') : '';
-    return `${i + 1}. ${p.title || p.id} (арт. ${p.article})\nЦена: ${fmtPrice(p.price)}${sizesLine}\n${photos}`;
-  }).join('\n\n');
-  const text = `🧥 Detsky Hit — мой список\n${cards}`;
+  const line = p => `${p.title || p.id} — ${fmtPrice(p.price)} ₸`;
+  const text = favs.length === 1
+    ? `Detsky Hit — ${line(favs[0])}`
+    : 'Detsky Hit — мой список:\n' + favs.map((p, i) => (i + 1) + '. ' + line(p)).join('\n');
+
+  const files = [];
+  if (window.__shareCardImage) {
+    for (const p of favs) {
+      try {
+        const blob = await window.__shareCardImage(p, '');
+        if (blob) files.push(new File([blob], 'detsky-hit-' + (p.article || p.id) + '.png', { type: 'image/png' }));
+      } catch (e) { /* skip */ }
+    }
+  }
+
+  const shareData = { title: 'Detsky Hit — мой список', text, files };
   try {
-    if (navigator.share) { await navigator.share({ title: 'Detsky Hit', text }); return; }
-  } catch (err) { /* пользователь закрыл окно или браузер не поддерживает */ }
-  // fallback: выделение текста + execCommand
+    if (navigator.canShare && navigator.canShare(shareData)) {
+      await navigator.share(shareData);
+      return;
+    }
+    if (navigator.share) {
+      await navigator.share({ title: shareData.title, text });
+      return;
+    }
+  } catch (err) { /* fall back */ }
+
   const box = document.createElement('textarea');
   box.value = text;
   box.readOnly = true;
   box.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0';
   document.body.appendChild(box);
-  box.focus(); box.select(); box.setSelectionRange(0, 99999);
-  try {
-    const ok = document.execCommand('copy');
-    showToast(ok ? 'Список скопирован' : 'Выделите текст в окне');
-  } catch (e3) {
-    showToast('Не получилось поделиться');
-  }
-  document.body.removeChild(box);
+  box.select(); box.setSelectionRange(0, 99999);
+  try { const ok = document.execCommand('copy'); showToast(ok ? 'Список скопирован' : 'Выделите текст в окне'); }
+  catch (e) { showToast('Не получилось поделиться'); }
+  box.remove();
 }
 
 // --- ⋮ menu, modals, share ---

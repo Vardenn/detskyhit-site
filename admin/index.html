@@ -89,7 +89,38 @@ button.small{padding:6px 12px;font-size:12px}
     <p class="sub">Админка магазина</p>
     <label>Пароль</label>
     <input type="password" id="pwd" autocomplete="current-password">
-    <div class="row"><button id="loginBtn">Войти</button><span id="loginError" class="err hidden"></span></div>
+    <div class="row-pr" style="margin:10px 0 0;font-size:12px">
+      <a href="#" id="forgotLink" style="color:#111;text-decoration:none;font-weight:600">Забыл пароль?</a>
+    </div>
+    <div class="row" style="margin-top:6px"><button id="loginBtn">Войти</button><span id="loginError" class="err hidden"></span></div>
+  </div>
+  <div class="login-card hidden" id="recoverCard">
+    <h2 style="font-size:17px;margin-bottom:8px">Забыли пароль</h2>
+    <p class="sub" style="margin-bottom:10px" id="recoverHint">Нажмите «Получить код» — мы отправим 6-значный код на email <b>Detskyhit@gmail.com</b>.</p>
+    <div id="recoverStep1">
+      <p class="hint" style="margin:0 0 12px;font-size:11.5px">Код придёт в папку «Входящие» (или «Спам») за 1–2 минуты.</p>
+      <div class="row"><button id="sendCodeBtn">Получить код</button><span id="recoverError1" class="err hidden"></span></div>
+      <button class="ghost small" id="backToLogin1" type="button" style="margin-top:8px">Назад ко входу</button>
+    </div>
+    <div id="recoverStep2" class="hidden">
+      <label>Код из письма</label>
+      <input type="text" inputmode="numeric" maxlength="6" autocomplete="one-time-code" id="resetCodeInput" placeholder="123456">
+      <div class="row"><button id="verifyCodeBtn">Проверить код</button><span id="recoverError2" class="err hidden"></span></div>
+      <button class="ghost small" id="backToLogin2" type="button" style="margin-top:8px">Назад ко входу</button>
+    </div>
+    <div id="recoverStep3" class="hidden">
+      <label>Новый пароль</label>
+      <input type="password" id="newResetPassword" autocomplete="new-password" placeholder="Минимум 8 символов, буквы и цифры">
+      <label>Повторите пароль</label>
+      <input type="password" id="newResetPassword2" autocomplete="new-password" placeholder="Ещё раз">
+      <div class="row"><button id="confirmResetBtn">Сохранить пароль</button><span id="recoverError3" class="err hidden"></span></div>
+      <button class="ghost small" id="backToLogin3" type="button" style="margin-top:8px">Назад ко входу</button>
+    </div>
+    <div id="recoverStep4" class="hidden" style="text-align:center;padding:20px 0">
+      <p style="font-size:15px;font-weight:700;margin:0">Пароль обновлён ✓</p>
+      <p class="hint" style="margin:8px 0 0">Войдите с новым паролем.</p>
+      <button id="doneResetBtn" style="margin-top:10px">Войти</button>
+    </div>
   </div>
 </div>
 
@@ -501,6 +532,70 @@ function openAdmin(){
 }
 const saved = sessionStorage.getItem(PWD_KEY);
 if (saved){ PASSWORD = saved; fetch(API, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ password: saved }) }).then(r => r.json()).then(d => { if (d && d.ok){ PRODUCTS = d.products; SETTINGS = d.settings || {}; openAdmin(); } else { sessionStorage.removeItem(PWD_KEY); } }).catch(()=>{}); }
+
+// ---------- password recovery (email OTP) ----------
+let resetToken = null;
+const showRecover = () => {
+  $('loginScreen').classList.add('hidden');
+  $('recoverCard').classList.remove('hidden');
+  $('recoverStep1').classList.remove('hidden');
+  $('recoverStep2').classList.add('hidden');
+  $('recoverStep3').classList.add('hidden');
+  $('recoverStep4').classList.add('hidden');
+  ['recoverError1','recoverError2','recoverError3'].forEach(id => $(id).classList.add('hidden'));
+};
+$('forgotLink').addEventListener('click', e => { e.preventDefault(); showRecover(); });
+['backToLogin1','backToLogin2','backToLogin3'].forEach(id => $(id).addEventListener('click', () => {
+  $('recoverCard').classList.add('hidden');
+  $('loginScreen').classList.remove('hidden');
+}));
+$('sendCodeBtn').addEventListener('click', async () => {
+  const err = $('recoverError1'); err.classList.add('hidden');
+  const btn = $('sendCodeBtn'); btn.disabled = true; btn.textContent = 'Отправляю…';
+  try {
+    const r = await fetch('/api/reset?action=request', { method:'POST', headers:{'Content-Type':'application/json'}, body: '{}' });
+    const d = await r.json();
+    if (!r.ok || !d.ok) { err.textContent = d.error || 'Ошибка отправки'; err.classList.remove('hidden'); btn.disabled = false; btn.textContent = 'Получить код'; return; }
+    $('recoverStep1').classList.add('hidden');
+    $('recoverStep2').classList.remove('hidden');
+    $('resetCodeInput').focus();
+  } catch (e) { err.textContent = 'Ошибка сети'; err.classList.remove('hidden'); btn.disabled = false; btn.textContent = 'Получить код'; }
+});
+$('verifyCodeBtn').addEventListener('click', async () => {
+  const err = $('recoverError2'); err.classList.add('hidden');
+  const code = $('resetCodeInput').value.trim();
+  if (!/^\d{6}$/.test(code)) { err.textContent = 'Введите 6 цифр'; err.classList.remove('hidden'); return; }
+  const btn = $('verifyCodeBtn'); btn.disabled = true; btn.textContent = 'Проверяю…';
+  try {
+    const r = await fetch('/api/reset?action=verify', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ code }) });
+    const d = await r.json();
+    if (!r.ok || !d.ok) { err.textContent = d.error || 'Неверный код'; err.classList.remove('hidden'); btn.disabled = false; btn.textContent = 'Проверить код'; return; }
+    resetToken = d.resetToken;
+    $('recoverStep2').classList.add('hidden');
+    $('recoverStep3').classList.remove('hidden');
+    $('newResetPassword').focus();
+  } catch (e) { err.textContent = 'Ошибка сети'; err.classList.remove('hidden'); btn.disabled = false; btn.textContent = 'Проверить код'; }
+});
+$('confirmResetBtn').addEventListener('click', async () => {
+  const err = $('recoverError3'); err.classList.add('hidden');
+  const p1 = $('newResetPassword').value, p2 = $('newResetPassword2').value;
+  if (p1 !== p2) { err.textContent = 'Пароли не совпадают'; err.classList.remove('hidden'); return; }
+  if (p1.length < 8) { err.textContent = 'Минимум 8 символов'; err.classList.remove('hidden'); return; }
+  const btn = $('confirmResetBtn'); btn.disabled = true; btn.textContent = 'Сохраняю…';
+  try {
+    const r = await fetch('/api/reset?action=confirm', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ token: resetToken, newPassword: p1 }) });
+    const d = await r.json();
+    if (!r.ok || !d.ok) { err.textContent = d.error || 'Ошибка'; err.classList.remove('hidden'); btn.disabled = false; btn.textContent = 'Сохранить пароль'; return; }
+    $('recoverStep3').classList.add('hidden');
+    $('recoverStep4').classList.remove('hidden');
+  } catch (e) { err.textContent = 'Ошибка сети'; err.classList.remove('hidden'); btn.disabled = false; btn.textContent = 'Сохранить пароль'; }
+});
+$('doneResetBtn').addEventListener('click', () => {
+  $('recoverCard').classList.add('hidden');
+  $('loginScreen').classList.remove('hidden');
+  $('pwd').value = '';
+  $('pwd').focus();
+});
 </script>
 </body>
 </html>
