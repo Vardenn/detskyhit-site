@@ -6,6 +6,9 @@
     "enabled": true
   },
   "main": "worker.js",
+  "ai": {
+    "binding": "AI"
+  },
   "assets": {
     "directory": ".",
     "binding": "ASSETS"

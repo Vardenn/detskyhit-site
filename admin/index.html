@@ -77,6 +77,21 @@ button.small{padding:6px 12px;font-size:12px}
 .hint{font-size:12px;color:#888;margin-top:6px}
 .row{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;align-items:center}
 .ok{color:#0a7}.err{color:#c00}
+#aiFab{position:fixed;right:18px;bottom:18px;width:56px;height:56px;border-radius:50%;font-size:24px;z-index:1001;box-shadow:0 6px 24px rgba(0,0,0,.35);padding:0}
+#aiPanel{position:fixed;right:18px;bottom:84px;width:340px;max-width:calc(100vw - 24px);height:460px;background:#fff;border:1px solid #e5e5e5;border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,.3);z-index:1001;display:flex;flex-direction:column;overflow:hidden}
+.ai-head{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-bottom:1px solid #eee}
+#aiMessages{flex:1;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:8px;background:#fcfcfc}
+.ai-msg{max-width:85%;padding:8px 10px;border-radius:10px;font-size:13px;line-height:1.35;white-space:pre-wrap;word-break:break-word}
+.ai-msg.user{align-self:flex-end;background:#111;color:#fff}
+.ai-msg.bot{align-self:flex-start;background:#efefef}
+.ai-msg.err{background:#fbe9e7;color:#b3261e;align-self:flex-start}
+.ai-card{align-self:flex-start;border:1px solid #d8d8d8;border-radius:10px;padding:8px 10px;max-width:95%;font-size:12px;background:#fffdf2}
+.ai-card b{display:block;margin-bottom:4px}
+.ai-card ul{margin:4px 0 6px 18px}
+.ai-card .row{display:flex;gap:6px}
+#aiForm{display:flex;border-top:1px solid #eee}
+#aiForm input{flex:1;border:0;padding:13px 12px;font-size:13px;outline:none}
+#aiForm button{width:46px;border:0;border-radius:0;background:#111;color:#fff;font-size:16px}
 .hidden{display:none !important}
 .login-wrap{max-width:380px;margin:80px auto}
 .login-card{background:#fff;border:1px solid #ddd;border-radius:16px;padding:28px;box-shadow:0 4px 24px rgba(0,0,0,.06)}
@@ -191,6 +206,12 @@ button.small{padding:6px 12px;font-size:12px}
   </div>
 </div>
 
+<button id="aiFab" class="hidden" type="button" title="AI-помощник">💬</button>
+<div id="aiPanel" class="hidden" role="dialog" aria-label="AI-помощник">
+  <div class="ai-head"><b>AI-помощник</b><button id="aiClose" class="ghost small" type="button">×</button></div>
+  <div id="aiMessages"></div>
+  <form id="aiForm"><input id="aiInput" type="text" placeholder="Например: арт. 13398 цену 25000" autocomplete="off"><button type="submit">➤</button></form>
+</div>
 <div id="productModal" class="modal-overlay hidden" role="dialog" aria-modal="true">
   <div class="modal-card">
     <div class="modal-header">
@@ -267,7 +288,7 @@ $('loginBtn').onclick = async () => {
     $('pwd').value = '';
   } catch(e) { err.textContent = 'Ошибка подключения'; err.classList.remove('hidden'); }
 };
-$('logoutBtn').onclick = () => { sessionStorage.removeItem(PWD_KEY); PASSWORD=null; $('adminScreen').classList.add('hidden'); $('loginScreen').classList.remove('hidden'); };
+$('logoutBtn').onclick = () => { sessionStorage.removeItem(PWD_KEY); PASSWORD=null; $('adminScreen').classList.add('hidden'); $('loginScreen').classList.remove('hidden'); $('aiFab').classList.add('hidden'); $('aiPanel').classList.add('hidden'); };
 $('openSiteBtn').onclick = () => window.open('/', '_blank');
 $('reloadBtn').onclick = () => location.reload();
 
@@ -547,6 +568,7 @@ $('saveSettingsBtn').onclick = async () => {
 function openAdmin(){
   $('loginScreen').classList.add('hidden');
   $('adminScreen').classList.remove('hidden');
+  $('aiFab').classList.remove('hidden');
   HL_ROWS = parseHighlights(); renderList(); renderSettings(); renderSeasonToggles(); renderHlEditor();
 }
 const saved = sessionStorage.getItem(PWD_KEY);
@@ -615,6 +637,97 @@ $('doneResetBtn').addEventListener('click', () => {
   $('pwd').value = '';
   $('pwd').focus();
 });
+
+// ---------- AI-помощник (Этап 1: чат + предложение → Применить/Отмена) ----------
+const AI_LABEL = { price: 'Цена', title: 'Название', description: 'Описание', season: 'Сезон', active: 'Активность' };
+const aiHistory = [];
+let aiBusy = false;
+function aiFormatChange(k, v) {
+  if (k === 'active') return v ? 'активна' : 'выключена';
+  if (k === 'price') return String(v);
+  return String(v);
+}
+function aiPushMessage(role, text, isErr) {
+  const box = $('aiMessages');
+  const div = document.createElement('div');
+  div.className = 'ai-msg ' + (role === 'user' ? 'user' : isErr ? 'err' : 'bot');
+  div.textContent = text;
+  box.appendChild(div);
+  box.scrollTop = box.scrollHeight;
+  return div;
+}
+function aiRenderProposal(proposal) {
+  const box = $('aiMessages');
+  const p = PRODUCTS.find(x => x.id === proposal.id) || {};
+  const card = document.createElement('div');
+  card.className = 'ai-card';
+  const items = Object.entries(proposal.changes).map(([k, v]) =>
+    '<li><b>' + (AI_LABEL[k] || k) + ':</b> ' + aiFormatChange(k, v) + '</li>').join('');
+  card.innerHTML = '<b>Предложение</b><div>Товар: ' + esc(p.title || p.id || proposal.id) + ' (арт. ' + esc(p.article || '—') + ')</div><ul>' + items + '</ul>' +
+    '<div class="row"><button type="button" class="small" data-act="apply">Применить</button><button type="button" class="ghost small" data-act="cancel">Отмена</button></div>';
+  box.appendChild(card);
+  box.scrollTop = box.scrollHeight;
+  card.querySelector('[data-act="apply"]').addEventListener('click', async () => {
+    const btn = card.querySelector('[data-act="apply"]');
+    btn.disabled = true; btn.textContent = 'Применяю…';
+    try {
+      const r = await fetch('/api/ai/apply', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: PASSWORD, proposal }) });
+      const d = await r.json();
+      if (!r.ok || !d.ok) { aiPushMessage('bot', 'Не применилось: ' + (d.error || r.status), true); btn.disabled = false; btn.textContent = 'Применить'; return; }
+      card.innerHTML = '<b>Готово ✓</b><div>' + esc((p.title || p.id)) + ' — изменения применены.</div>';
+      const i = PRODUCTS.findIndex(x => x.id === proposal.id);
+      if (i >= 0 && d.after) {
+        PRODUCTS[i] = { ...PRODUCTS[i], price: d.after.price ?? PRODUCTS[i].price, title: d.after.title ?? PRODUCTS[i].title, description: d.after.description ?? PRODUCTS[i].description };
+        try {
+          const meta = productMeta();
+          meta[proposal.id] = { ...(meta[proposal.id] || {}), season: d.after.season || undefined, active: d.after.active };
+          SETTINGS.product_meta = JSON.stringify(meta);
+        } catch (_) {}
+        renderList();
+      }
+      aiHistory.push({ role: 'assistant', content: 'Готово, изменения применены.' });
+    } catch (e) {
+      aiPushMessage('bot', 'Ошибка сети при применении', true);
+      btn.disabled = false; btn.textContent = 'Применить';
+    }
+  });
+  card.querySelector('[data-act="cancel"]').addEventListener('click', () => {
+    card.innerHTML = '<div>Предложение отменено.</div>';
+    aiHistory.push({ role: 'assistant', content: 'Пользователь отменил предложение.' });
+  });
+}
+async function aiAsk(text) {
+  if (aiBusy) return;
+  aiBusy = true;
+  aiPushMessage('user', text);
+  aiHistory.push({ role: 'user', content: text });
+  const thinking = aiPushMessage('bot', 'Думаю…');
+  try {
+    const r = await fetch('/api/ai', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: PASSWORD, messages: aiHistory.slice(-10) }) });
+    const d = await r.json();
+    thinking.remove();
+    if (!r.ok || d.error) { aiPushMessage('bot', d.error || ('Ошибка ' + r.status), true); return; }
+    aiPushMessage('bot', d.reply || '(пустой ответ)');
+    aiHistory.push({ role: 'assistant', content: d.reply || '' });
+    if (d.proposal) aiRenderProposal(d.proposal);
+  } catch (e) {
+    thinking.remove();
+    aiPushMessage('bot', 'Ошибка сети: ' + (e && e.message ? e.message : e), true);
+  } finally {
+    aiBusy = false;
+  }
+}
+$('aiFab').addEventListener('click', () => { $('aiPanel').classList.toggle('hidden'); if (!$('aiMessages').children.length) aiPushMessage('bot', 'Привет! Я AI-помощник магазина. Могу смотреть каталог и предлагать правки: цена, название, описание, сезон, активность.\n\nНапример: «покажи зимние куртки», «арт. 13398 цену 25000», «выключи куртку 19840».'); $('aiInput').focus(); });
+$('aiClose').addEventListener('click', () => $('aiPanel').classList.add('hidden'));
+$('aiForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const input = $('aiInput');
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = '';
+  aiAsk(text);
+});
+// видимость кнопки-чата управляется через openAdmin() и logoutBtn
 </script>
 </body>
 </html>

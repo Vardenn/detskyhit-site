@@ -54,6 +54,204 @@ const RESET_COOLDOWN_MS = 60 * 1000;
 
 const UPLOAD_PATHS = new Set(['/api/upload']);
 
+// ---------- AI assistant (Этап 1: read + propose/apply, только одиночные правки) ----------
+const AI_PATHS = new Set(['/api/ai', '/api/ai/apply']);
+const AI_MODEL = '@cf/meta/llama-3.3-70b-instruct-fp8-fast';
+const AI_RATE_LIMIT = 30;
+const AI_RATE_WINDOW_MS = 10 * 60 * 1000;
+const AI_WHITELIST = new Set(['price', 'title', 'description', 'season', 'active']);
+const AI_SEASONS = ['зима', 'осень', 'весна', 'лето'];
+
+async function aiRateOk(env, ip) {
+  const key = 'ai_rate_' + ip;
+  const last = await getSetting(env, key);
+  const now = Date.now();
+  let windowStart = now, count = 0;
+  try { const parsed = JSON.parse(last || '{}'); windowStart = parsed.t || now; count = parsed.n || 0; } catch {}
+  if (now - windowStart > AI_RATE_WINDOW_MS) { windowStart = now; count = 0; }
+  count += 1;
+  await setSetting(env, key, JSON.stringify({ t: windowStart, n: count }));
+  return count <= AI_RATE_LIMIT;
+}
+
+function compactCatalog(products, meta) {
+  return products.map(p => {
+    const m = meta[p.id] || {};
+    return [p.id, p.article, String(p.title || '').slice(0, 60), p.price, p.category || '', m.season || '', m.active === false ? 'off' : 'on'].join(' | ');
+  }).join('\n');
+}
+
+const AI_SYSTEM = `Ты — AI-помощник администратора магазина детской одежды «Detsky Hit» (Караганда, ТД Таир 3). Отвечай на русском, коротко и по делу.
+
+СТРОГИЙ ФОРМАТ ОТВЕТА: только один JSON-объект, без markdown и пояснений вокруг:
+{"reply": "<короткий ответ пользователю>", "proposal": null | {"type":"updateProduct","id":"<id товара из СПИСКА>","changes":{...}}}
+
+ЧТО ТЫ УМЕЕШЬ:
+- Отвечать на вопросы по каталогу по СПИСКУ ТОВАРОВ ниже.
+- Предлагать ОДИНОЧНОЕ изменение товара (proposal) с полями:
+  price — строка «<число> KZT» (например "25300 KZT");
+  title — строка до 120 символов;
+  description — строка до 500 символов (может быть пустой);
+  season — одно из: зима, осень, весна, лето;
+  active — true (активна) или false (выключена).
+
+ЗАПРЕЩЕНО:
+- Предлагать массовые действия (несколько товаров) — скажи, что пока можно менять только по одному.
+- Предлагать удаление товаров, очистку каталога, правку паролей/ключей/секретов, настроек сайта, файлов, деплой — вежливо откажись.
+- Выдумывать id товаров — берите id только из СПИСКА. Если не нашёл товар — спроси артикул или название.
+- Писать цену словами — нормализуй в «<число> KZT».
+- Отвечать не в JSON — модель обязана вернуть ровно один JSON-объект.
+
+Если нашёл нужный товар и можешь предложить правку — указывай proposal. Если не уверен — переспроси (proposal=null).
+Пользователь применяет предложение кнопкой, сам ты ничего не меняешь.`;
+
+function extractJson(text) {
+  const s = String(text || '');
+  const start = s.indexOf('{');
+  const end = s.lastIndexOf('}');
+  if (start === -1 || end <= start) return null;
+  try { return JSON.parse(s.slice(start, end + 1)); } catch { return null; }
+}
+
+function normalizePrice(v) {
+  const digits = String(v == null ? '' : v).replace(/[^\d]/g, '');
+  if (!digits) return null;
+  const n = Number(digits);
+  if (!Number.isFinite(n) || n < 100 || n > 100000000) return null;
+  return String(n) + ' KZT';
+}
+
+function validateProposal(proposal, products) {
+  if (!proposal || typeof proposal !== 'object') return { ok: false, error: 'нет предложения' };
+  if (proposal.type !== 'updateProduct') return { ok: false, error: 'неизвестное действие' };
+  const p = products.find(x => x.id === String(proposal.id || ''));
+  if (!p) return { ok: false, error: 'товар не найден' };
+  const raw = proposal.changes;
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return { ok: false, error: 'нет изменений' };
+  for (const k of Object.keys(raw)) {
+    if (!AI_WHITELIST.has(k)) return { ok: false, error: `поле «${k}» менять нельзя` };
+  }
+  const changes = {};
+  if ('price' in raw) { const pr = normalizePrice(raw.price); if (!pr) return { ok: false, error: 'цена должна быть числом (например «25300 KZT»)' }; changes.price = pr; }
+  if ('title' in raw) { const t = String(raw.title || '').trim().slice(0, 120); if (!t) return { ok: false, error: 'пустое название' }; changes.title = t; }
+  if ('description' in raw) { changes.description = String(raw.description == null ? '' : raw.description).trim().slice(0, 500); }
+  if ('season' in raw) { const s = String(raw.season || '').trim().toLowerCase(); if (!AI_SEASONS.includes(s)) return { ok: false, error: 'сезон: зима/осень/весна/лето' }; changes.season = s; }
+  if ('active' in raw) {
+    const a = raw.active;
+    changes.active = typeof a === 'boolean' ? a : !(String(a).trim().toLowerCase() === 'false' || String(a).trim() === '0');
+  }
+  if (!Object.keys(changes).length) return { ok: false, error: 'нечего менять' };
+  return { ok: true, product: p, changes };
+}
+
+async function handleAi(request, env) {
+  if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY) return json({ error: 'Сервер не настроен' }, 500);
+  if (request.method !== 'POST') return json({ error: 'Method' }, 405);
+  let body = {};
+  try { body = await request.json(); } catch { return json({ error: 'Некорректный запрос' }, 400); }
+  if (!(await checkAdminPassword(env, String(body.password || '')))) return json({ error: 'Неверный пароль' }, 401);
+  const ip = request.headers.get('cf-connecting-ip') || 'unknown';
+  if (!(await aiRateOk(env, ip))) return json({ error: 'Слишком много запросов, попробуйте через 10 минут' }, 429);
+  if (!env.AI) return json({ error: 'AI binding не настроен' }, 503);
+
+  const rawMessages = Array.isArray(body.messages) ? body.messages : [];
+  const messages = rawMessages.slice(-10).map(m => ({
+    role: m && m.role === 'assistant' ? 'assistant' : 'user',
+    content: String((m && m.content) || '').slice(0, 1000),
+  }));
+  const lastUser = [...messages].reverse().find(m => m.role === 'user');
+  if (!lastUser || !lastUser.content.trim()) return json({ error: 'Пустая команда' }, 400);
+
+  const { products, settings } = await readCatalog(env);
+  let meta = {};
+  try { meta = JSON.parse(settings.product_meta || '{}'); } catch {}
+  const system = AI_SYSTEM + '\n\nСПИСОК ТОВАРОВ (id | артикул | название | цена | категория | сезон | статус):\n' + compactCatalog(products, meta);
+
+  let resp;
+  try {
+    resp = await env.AI.run(AI_MODEL, {
+      messages: [{ role: 'system', content: system }, ...messages],
+      temperature: 0.2,
+      max_tokens: 800,
+    });
+  } catch (e) {
+    return json({ error: 'AI недоступен: ' + (e && e.message ? e.message.slice(0, 200) : String(e)) }, 502);
+  }
+  let text = '';
+  const msg = resp && typeof resp === 'object' && !Array.isArray(resp) && resp.choices && resp.choices[0] && resp.choices[0].message ? resp.choices[0].message.content : null;
+  const candidates = [typeof resp === 'string' ? resp : null, resp && resp.response, resp && resp.text, resp && resp.output, msg];
+  for (const cand of candidates) {
+    if (typeof cand === 'string' && cand.trim()) { text = cand; break; }
+  }
+  const parsed = extractJson(text);
+  if (!parsed || typeof parsed.reply !== 'string') {
+    return json({ ok: true, reply: 'Не смог разобрать ответ модели. Сформулируйте проще, например: «арт. 13398 цену 25000».', proposal: null });
+  }
+  let reply = String(parsed.reply).slice(0, 600);
+  let proposal = null;
+  if (parsed.proposal) {
+    const v = validateProposal(parsed.proposal, products);
+    if (v.ok) {
+      proposal = { type: 'updateProduct', id: v.product.id, changes: v.changes };
+    } else {
+      reply = (reply ? reply + '\n\n' : '') + 'Но изменить не смогу: ' + v.error + '.';
+    }
+  }
+  return json({ ok: true, reply, proposal });
+}
+
+async function handleAiApply(request, env) {
+  if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY) return json({ error: 'Сервер не настроен' }, 500);
+  if (request.method !== 'POST') return json({ error: 'Method' }, 405);
+  let body = {};
+  try { body = await request.json(); } catch { return json({ error: 'Некорректный запрос' }, 400); }
+  if (!(await checkAdminPassword(env, String(body.password || '')))) return json({ error: 'Неверный пароль' }, 401);
+
+  const { products, settings } = await readCatalog(env);
+  const v = validateProposal(body.proposal, products);
+  if (!v.ok) return json({ error: 'Изменение отклонено: ' + v.error }, 400);
+
+  let meta = {};
+  try { meta = JSON.parse(settings.product_meta || '{}'); } catch {}
+  const metaBefore = meta[v.product.id] || {};
+  const before = { price: v.product.price, title: v.product.title, description: v.product.description, season: metaBefore.season || null, active: metaBefore.active !== false };
+
+  const productChanges = {};
+  if ('price' in v.changes) productChanges.price = v.changes.price;
+  if ('title' in v.changes) productChanges.title = v.changes.title;
+  if ('description' in v.changes) productChanges.description = v.changes.description;
+  if (Object.keys(productChanges).length) {
+    const merged = { ...v.product, ...productChanges };
+    const up = await supa(env, 'products', { method: 'POST', body: [merged], prefer: 'resolution=merge-duplicates' });
+    if (up.status !== 201 && up.status !== 200) {
+      return json({ error: 'Не удалось сохранить товар', details: String(up.text).slice(0, 200) }, 502);
+    }
+  }
+  if ('season' in v.changes || 'active' in v.changes) {
+    const m = { ...(meta[v.product.id] || {}) };
+    if ('season' in v.changes) m.season = v.changes.season;
+    if ('active' in v.changes) m.active = v.changes.active;
+    meta[v.product.id] = m;
+    await setSetting(env, 'product_meta', JSON.stringify(meta));
+  }
+  const metaAfter = meta[v.product.id] || {};
+  const after = {
+    price: productChanges.price || v.product.price,
+    title: productChanges.title || v.product.title,
+    description: 'description' in productChanges ? productChanges.description : (v.product.description || ''),
+    season: 'season' in v.changes ? v.changes.season : (metaAfter.season || null),
+    active: 'active' in v.changes ? v.changes.active : (metaAfter.active !== false),
+  };
+
+  let log = [];
+  try { log = JSON.parse(settings.ai_log || '[]'); if (!Array.isArray(log)) log = []; } catch { log = []; }
+  log.unshift({ t: Date.now(), type: 'apply', id: v.product.id, article: v.product.article, changes: v.changes, before, after });
+  if (log.length > 50) log.length = 50;
+  await setSetting(env, 'ai_log', JSON.stringify(log));
+
+  return json({ ok: true, after });
+}
+
 async function handleReset(request, env) {
   const url = new URL(request.url);
   let action = url.searchParams.get('action') || '';
@@ -364,6 +562,9 @@ export default {
     }
     if (INSTA_STATS_PATHS.has(url.pathname)) {
       return json(await instaStats(env));
+    }
+    if (AI_PATHS.has(url.pathname)) {
+      return url.pathname === '/api/ai' ? handleAi(request, env) : handleAiApply(request, env);
     }
     if (RESET_PATHS.has(url.pathname)) {
       return handleReset(request, env);
