@@ -278,7 +278,7 @@ async function saveAll(){
   const r = await fetch(API, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ password: PASSWORD, products: PRODUCTS, settings: SETTINGS }) });
   const d = await r.json();
   if (!r.ok || d.error){ status.textContent = 'Ошибка: ' + (d.error || r.status); status.style.color='#c00'; return; }
-  status.textContent = 'Сохранено ✓'; status.style.color='#0a7';
+  status.textContent = 'Сохранено'; status.style.color='#0a7';
 }
 $('saveAllBtn').onclick = saveAll;
 
@@ -413,7 +413,7 @@ $('saveProductBtn').onclick = () => {
   fetch(API, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ password: PASSWORD, products: PRODUCTS, settings: SETTINGS }) })
     .then(async r => {
       const d = await r.json();
-      if (r.ok && d.ok){ status.textContent = 'Сохранено ✓'; status.style.color='#0a7'; closeModal(); renderList(); }
+      if (r.ok && d.ok){ status.textContent = 'Сохранено'; status.style.color='#0a7'; closeModal(); renderList(); }
       else { status.textContent = 'Ошибка: ' + (d.error || r.status); status.style.color='#c00'; }
     })
     .catch(() => { status.textContent = 'Ошибка сети'; status.style.color='#c00'; });
@@ -531,8 +531,17 @@ $('saveSettingsBtn').onclick = async () => {
   const instaO = JSON.stringify(HL_ROWS);
   SETTINGS = { ...SETTINGS, seasons_enabled: JSON.stringify(instaS), highlights: instaO, name:$('sName').value, tagline:$('sTagline').value, bio:$('sBio').value, address:$('sAddress').value, city:$('sCity').value, hours:$('sHours').value, whatsapp:$('sWhatsapp').value.replace(/\D/g,''), buttonWhatsapp:$('sButtonWa').value, instagram_posts:$('sInstaPosts').value, instagram_followers:$('sInstaFollowers').value, instagram:'detsky_hit' };
   $('settingsStatus').textContent = 'Сохраняю…';
-  const r = await fetch(API, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ password: PASSWORD, products: PRODUCTS, settings: SETTINGS }) });
-  $('settingsStatus').textContent = r.ok ? 'Сохранено ✓' : 'Ошибка';
+  $('settingsStatus').style.color = '#555';
+  try {
+    const r = await fetch(API, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ password: PASSWORD, products: PRODUCTS, settings: SETTINGS }) });
+    let d = {}; try { d = await r.json(); } catch(_) {}
+    const ok = r.ok && !d.error;
+    $('settingsStatus').textContent = ok ? 'Сохранено' : 'Ошибка: ' + (d.error || r.status);
+    $('settingsStatus').style.color = ok ? '#0a7' : '#c00';
+  } catch (err) {
+    $('settingsStatus').textContent = 'Ошибка сети';
+    $('settingsStatus').style.color = '#c00';
+  }
 };
 
 function openAdmin(){
