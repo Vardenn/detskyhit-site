@@ -77,6 +77,19 @@ button.small{padding:6px 12px;font-size:12px}
 .hint{font-size:12px;color:#888;margin-top:6px}
 .row{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;align-items:center}
 .ok{color:#0a7}.err{color:#c00}
+.cx-btn{display:inline-flex;align-items:center;gap:6px;border:1px solid #111;background:#111;color:#fff;border-radius:8px;padding:10px 18px;font-size:14px;font-weight:600;cursor:pointer}
+.cx-btn.ghost{background:#fff;color:#111}
+.cx-file{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.cx-table{width:100%;border-collapse:collapse;font-size:12px;margin-top:8px}
+.cx-table th,.cx-table td{border:1px solid #e5e5e5;padding:6px 8px;text-align:left;vertical-align:middle}
+.cx-table th{background:#f4f4f4;font-weight:600}
+.cx-table tr.bad td{background:#fdeceb;color:#b3261e}
+.cx-table tr.new td:first-child{border-left:3px solid #0a7}
+.cx-table tr.upd td:first-child{border-left:3px solid #2952cc}
+.cx-tag{display:inline-block;padding:2px 8px;border-radius:999px;font-size:10.5px;font-weight:700}
+.cx-tag.new{background:#e5f6ee;color:#0a7}
+.cx-tag.upd{background:#e8f0fe;color:#2952cc}
+.cx-tag.bad{background:#fbe9e7;color:#b3261e}
 #aiFab{position:fixed;right:18px;bottom:18px;width:56px;height:56px;border-radius:50%;font-size:24px;z-index:1001;box-shadow:0 6px 24px rgba(0,0,0,.35);padding:0}
 #aiPanel{position:fixed;right:18px;bottom:84px;width:340px;max-width:calc(100vw - 24px);height:460px;background:#fff;border:1px solid #e5e5e5;border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,.3);z-index:1001;display:flex;flex-direction:column;overflow:hidden}
 .ai-head{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-bottom:1px solid #eee}
@@ -157,6 +170,27 @@ button.small{padding:6px 12px;font-size:12px}
     <span id="saveStatus" class="ok"></span>
   </div>
 
+  <div class="card" id="centerCard" style="margin-top:12px">
+    <h2 style="font-size:16px;margin-bottom:4px">📦 «Центр» — загрузка пачкой через Excel</h2>
+    <p class="hint" style="margin:0 0 10px">1) Скачайте шаблон → 2) Заполните (категория и сезон — по списку, фото называйте как артикул: <code>19840.jpg</code>, <code>19840-1.jpg</code>) → 3) Загрузите Excel и папку фото → 4) Проверьте и нажмите «Опубликовать». Новая категория создастся сама.</p>
+    <div class="row" style="margin-top:0">
+      <button class="cx-btn ghost" id="centerTemplateBtn" type="button">⬇ Скачать шаблон Excel</button>
+      <label class="cx-btn ghost" for="centerXlsxInput">📂 Загрузить Excel</label>
+      <input class="cx-file" id="centerXlsxInput" type="file" accept=".xlsx,.xls,.csv">
+      <label class="cx-btn ghost" for="centerPhotosInput">🖼 Выбрать папку фото</label>
+      <input class="cx-file" id="centerPhotosInput" type="file" webkitdirectory directory multiple>
+      <span id="centerStatus" class="hint" style="margin:0"></span>
+    </div>
+    <div id="centerCheckWrap" class="hidden" style="margin-top:12px">
+      <div id="centerSummary" class="hint" style="margin-bottom:6px"></div>
+      <div style="overflow-x:auto"><table class="cx-table" id="centerTable"></table></div>
+      <div class="row" style="margin-top:10px">
+        <button id="centerPublishBtn" type="button">Опубликовать</button>
+        <span id="centerPublishStatus" class="hint" style="margin:0"></span>
+      </div>
+    </div>
+  </div>
+
   <div class="layout" style="margin-top:12px">
     <div>
       <input type="text" id="searchBox" placeholder="Поиск по артикулу / названию">
@@ -231,13 +265,12 @@ button.small{padding:6px 12px;font-size:12px}
         <div class="two-col">
           <div><label>Цена</label><input type="text" id="fPrice"></div>
           <div><label>Категория</label>
-            <select id="fCategory">
-              <option value="куртки">Куртки</option>
-              <option value="худи">Свитшоты</option>
-              <option value="рубашки">Рубашки</option>
-              <option value="штаны">Штаны</option>
-            </select>
+            <select id="fCategory"></select>
           </div>
+        </div>
+        <div class="two-col">
+          <div><label>Кол-во</label><input type="number" id="fQty" min="0" placeholder="0"></div>
+          <div class="hint" style="margin-top:22px">Остаток на складе (виден в списке товаров)</div>
         </div>
         <label style="margin-top:10px">Размеры</label>
         <div class="sizes" id="sizesBox"></div>
@@ -254,6 +287,7 @@ button.small{padding:6px 12px;font-size:12px}
   </div>
 </div>
 
+<script src="/vendor/xlsx.full.min.js"></script>
 <script>
 const SIZES = ['140','146','152','164','170','176','180'];
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -273,6 +307,28 @@ let listFilter = 'all';
 
 const API = '/api/catalog';
 const PWD_KEY = 'detskyhit_admin_pwd';
+const shrinkToBlob = file => new Promise((resolve, reject) => {
+  const url = URL.createObjectURL(file);
+  const im = new Image();
+  im.onload = () => {
+    const scale = Math.min(1, 2048 / Math.max(im.width, im.height));
+    const w = Math.max(1, Math.round(im.width * scale));
+    const h = Math.max(1, Math.round(im.height * scale));
+    const cv = document.createElement('canvas');
+    cv.width = w; cv.height = h;
+    cv.getContext('2d').drawImage(im, 0, 0, w, h);
+    URL.revokeObjectURL(url);
+    cv.toBlob(b => b ? resolve(b) : reject(new Error('encode')), 'image/jpeg', 0.9);
+  };
+  im.onerror = reject;
+  im.src = url;
+});
+const blobToDataUrl = blob => new Promise((resolve, reject) => {
+  const fr = new FileReader();
+  fr.onload = () => resolve(String(fr.result));
+  fr.onerror = reject;
+  fr.readAsDataURL(blob);
+});
 
 $('loginBtn').onclick = async () => {
   const err = $('loginError'); err.classList.add('hidden');
@@ -318,7 +374,7 @@ function renderList(){
     const active = m.active !== false;
     const season = m.season === undefined ? 'зима' : m.season;
     const sLabel = season ? `${SEASON_EMOJI[season] || ''} ${season}` : '🔁 всесезонная';
-    return `<div class="product-item ${p.id===currentId?'active':''} ${active?'':'is-off'}" data-id="${esc(p.id)}"><img src="${esc(imgUrl(p.images?.[0]||''))}"><div><div>${esc(p.title||p.id)}</div><div style="font-size:12px;color:#777">арт. ${esc(p.article)} · ${esc(p.price||'—')}</div><span class="season-chip ${active?'':'off'}">${sLabel}${active?'':' · выкл'}</span></div></div>`;
+    return `<div class="product-item ${p.id===currentId?'active':''} ${active?'':'is-off'}" data-id="${esc(p.id)}"><img src="${esc(imgUrl(p.images?.[0]||''))}"><div><div>${esc(p.title||p.id)}</div><div style="font-size:12px;color:#777">арт. ${esc(p.article)} · ${esc(p.price||'—')}${m.quantity!==undefined?` · кол-во ${esc(String(m.quantity))}`:''}</div><span class="season-chip ${active?'':'off'}">${sLabel}${active?'':' · выкл'}</span></div></div>`;
   }).join('') || '<p style="padding:16px;color:#999">Ничего не найдено</p>';
 }
 $('searchBox').addEventListener('input', renderList);
@@ -334,6 +390,7 @@ function openProduct(id){
   $('modalTitle').textContent = (p.title || p.id) + ' (арт. ' + p.article + ')';
   $('fArticle').value = p.article || ''; $('fTitle').value = p.title || ''; $('fPrice').value = p.price || '';
   $('fCategory').value = p.category || 'штаны'; $('fDescription').value = p.description || '';
+  $('fQty').value = (productMeta()[p.id] || {}).quantity ?? '';
   const m0 = (productMeta()[id]) || {};
   $('fSeason').value = m0.season === undefined ? 'зима' : (m0.season || '');
   setActiveToggle(m0.active !== false);
@@ -375,28 +432,6 @@ $('addPhotoInput').addEventListener('change', async e => {
   const files = [...e.target.files];
   e.target.value = '';
   const status = $('productStatus');
-  const shrinkToBlob = file => new Promise((resolve, reject) => {
-    const url = URL.createObjectURL(file);
-    const im = new Image();
-    im.onload = () => {
-      const scale = Math.min(1, 2048 / Math.max(im.width, im.height));
-      const w = Math.max(1, Math.round(im.width * scale));
-      const h = Math.max(1, Math.round(im.height * scale));
-      const cv = document.createElement('canvas');
-      cv.width = w; cv.height = h;
-      cv.getContext('2d').drawImage(im, 0, 0, w, h);
-      URL.revokeObjectURL(url);
-      cv.toBlob(b => b ? resolve(b) : reject(new Error('encode')), 'image/jpeg', 0.9);
-    };
-    im.onerror = reject;
-    im.src = url;
-  });
-  const blobToDataUrl = blob => new Promise((resolve, reject) => {
-    const fr = new FileReader();
-    fr.onload = () => resolve(String(fr.result));
-    fr.onerror = reject;
-    fr.readAsDataURL(blob);
-  });
   for (const f of files) {
     if (p.images.length >= 10) break;
     status.textContent = 'Загружаю «' + f.name + '»…'; status.style.color = '#555';
@@ -426,8 +461,9 @@ $('saveProductBtn').onclick = () => {
   p.category = $('fCategory').value; p.description = $('fDescription').value;
   p.sizes = [...$('sizesBox').querySelectorAll('.size-chip.active')].map(b => b.dataset.s);
   p.images = [...$('photoRow').querySelectorAll('.photo')].map(x => x.dataset.src);
+  const qtyInput = $('fQty'); const qty = qtyInput.value === '' ? undefined : Math.max(0, Number(qtyInput.value) || 0);
   const meta = productMeta();
-  meta[p.id] = { season: $('fSeason').value, active: !$('activeToggle').classList.contains('off') };
+  meta[p.id] = { ...(meta[p.id] || {}), season: $('fSeason').value, active: !$('activeToggle').classList.contains('off'), ...(qty !== undefined ? { quantity: qty } : {}) };
   SETTINGS.product_meta = JSON.stringify(meta);
   $('productStatus').textContent = 'Сохраняю…'; $('productStatus').style.color='#555';
   const status = $('productStatus');
@@ -486,7 +522,7 @@ function renderHlEditor() {
       </div>
       <div class="hl-edit-bot">
         <select class="hl-cat" data-i="${i}">
-          ${[['all','Все товары'],['куртки','Куртки'],['худи','Свитшоты'],['рубашки','Рубашки'],['штаны','Штаны']].map(([k,l]) => `<option value="${k}" ${row.category===k?'selected':''}>${l}</option>`).join('')}
+          ${[['all','Все товары'], ...cxAllCats()].map(([k,l]) => `<option value="${k}" ${row.category===k?'selected':''}>${esc(l)}</option>`).join('')}
         </select>
         <div class="hl-edit-arrows"><button type="button" class="hl-up" data-i="${i}">▲</button><button type="button" class="hl-down" data-i="${i}">▼</button></div>
       </div>
@@ -569,7 +605,7 @@ function openAdmin(){
   $('loginScreen').classList.add('hidden');
   $('adminScreen').classList.remove('hidden');
   $('aiFab').classList.remove('hidden');
-  HL_ROWS = parseHighlights(); renderList(); renderSettings(); renderSeasonToggles(); renderHlEditor();
+  HL_ROWS = parseHighlights(); renderList(); renderSettings(); renderSeasonToggles(); renderHlEditor(); populateCategorySelects();
 }
 const saved = sessionStorage.getItem(PWD_KEY);
 if (saved){ PASSWORD = saved; fetch(API, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ password: saved }) }).then(r => r.json()).then(d => { if (d && d.ok){ PRODUCTS = d.products; SETTINGS = d.settings || {}; openAdmin(); } else { sessionStorage.removeItem(PWD_KEY); } }).catch(()=>{}); }
@@ -638,7 +674,241 @@ $('doneResetBtn').addEventListener('click', () => {
   $('pwd').focus();
 });
 
+// ---------- «Центр»: загрузка пачкой через Excel ----------
+const CX_BUILTIN_CATS = [['куртки','Куртки'],['худи','Свитшоты'],['рубашки','Рубашки'],['штаны','Штаны']];
+const CX_SEASON_MAP = { 'зима':'зима','winter':'зима','осень':'осень','autumn':'осень','fall':'осень','весна':'весна','spring':'весна','лето':'лето','summer':'лето' };
+const CX_COLS = [
+  { key:'article', label:'Артикул', aliases:['артикул','арт','арт.','article'] },
+  { key:'title', label:'Название', aliases:['название','наименование','title','модель','name'] },
+  { key:'category', label:'Категория', aliases:['категория','category','тип'] },
+  { key:'season', label:'Сезон', aliases:['сезон','season'] },
+  { key:'price', label:'Цена', aliases:['цена','price','стоимость'] },
+  { key:'sizes', label:'Размеры', aliases:['размеры','размер','sizes','size'] },
+  { key:'quantity', label:'Кол-во', aliases:['количество','кол-во','колво','qty','count','остаток'] },
+  { key:'images', label:'Фото', aliases:['фото','images','image','photo','файл'] },
+  { key:'description', label:'Описание', aliases:['описание','description','desc'] },
+  { key:'active', label:'Активна', aliases:['активна','активен','active','on'] },
+];
+let CX = { rows: [], raw: [], files: new Map() };
+
+const cxNorm = v => String(v == null ? '' : v).trim();
+const cxLower = v => cxNorm(v).toLowerCase();
+function cxCustomCats() {
+  const a = parseJSON(SETTINGS.custom_categories, []);
+  return Array.isArray(a) ? a.map(x => String(x).trim()).filter(Boolean) : [];
+}
+function cxAllCats() {
+  const out = CX_BUILTIN_CATS.map(([k, l]) => [k, l]);
+  const seen = new Set(out.map(x => x[0]));
+  for (const c of cxCustomCats()) {
+    const k = c.toLowerCase();
+    if (!seen.has(k)) { seen.add(k); out.push([k, c]); }
+  }
+  return out;
+}
+function populateCategorySelects() {
+  const cats = cxAllCats();
+  const opts = cats.map(([k, l]) => `<option value="${esc(k)}">${esc(l)}</option>`).join('');
+  const fc = $('fCategory');
+  if (fc) { const cur = fc.value; fc.innerHTML = opts; if ([...fc.options].some(o => o.value === cur)) fc.value = cur; }
+  document.querySelectorAll('.hl-cat').forEach(sel => {
+    const cur = sel.value;
+    sel.innerHTML = '<option value="all">Все товары</option>' + opts;
+    if ([...sel.options].some(o => o.value === cur)) sel.value = cur;
+  });
+}
+const cxPhotoName = name => String(name).trim().toLowerCase().split(/[\\/]/).pop();
+const cxMatchPhotos = article => {
+  if (!article) return [];
+  const a = article.toLowerCase();
+  const out = [];
+  for (const [key, file] of CX.files) {
+    const base = key.replace(/\.[^.]+$/, '');
+    if (base === a || base.startsWith(a + '-') || base.startsWith(a + '_') || base.startsWith(a + ' ') || base.startsWith(a + '.')) {
+      out.push({ key, file, name: file.name, base });
+    }
+  }
+  out.sort((x, y) => x.base.localeCompare(y.base, undefined, { numeric: true }));
+  return out;
+};
+function cxMapRow(o) {
+  const map = {};
+  for (const key of Object.keys(o)) {
+    const k = String(key).trim().toLowerCase().replace(/\s+/g, ' ').replace(/\./g, '');
+    for (const col of CX_COLS) {
+      if (col.aliases.includes(k)) { map[col.key] = o[key]; break; }
+    }
+  }
+  return map;
+}
+function cxValidate(rawRows) {
+  const out = [];
+  const seen = new Set();
+  for (const raw of rawRows) {
+    const o = cxMapRow(raw);
+    const r = {
+      article: cxNorm(o.article),
+      title: cxNorm(o.title).slice(0, 120),
+      category: cxLower(o.category),
+      seasonRaw: cxNorm(o.season),
+      price: null,
+      sizes: [],
+      quantity: 0,
+      description: cxNorm(o.description).slice(0, 500),
+      images: cxNorm(o.images),
+      errors: [],
+      warnings: [],
+    };
+    if (!r.article) r.errors.push('нет артикула');
+    else if (!/^[A-Za-zА-Яа-я0-9\-_]{2,40}$/.test(r.article)) r.errors.push('артикул: только буквы, цифры, «-» и «_»');
+    else if (seen.has(r.article.toLowerCase())) r.errors.push('повтор артикула');
+    seen.add(r.article.toLowerCase());
+    if (!r.title) r.errors.push('нет названия');
+    if (!r.category) r.errors.push('нет категории');
+    const sKey = r.seasonRaw.toLowerCase().replace(/ё/g, 'е');
+    r.season = CX_SEASON_MAP[sKey] || null;
+    if (!r.season) r.errors.push('сезон: Зима/Весна/Лето/Осень');
+    const priceDigits = String(o.price == null ? '' : o.price).replace(/[^\d]/g, '');
+    if (!priceDigits) r.errors.push('цена: только цифры');
+    else if (Number(priceDigits) < 100) r.errors.push('цена подозрительно маленькая');
+    else r.price = String(Number(priceDigits)) + ' KZT';
+    r.sizes = cxNorm(o.sizes).split(/[,;\s]+/).map(x => x.trim()).filter(Boolean);
+    if (!r.sizes.length) r.warnings.push('«Размеры» пусто');
+    const qRaw = cxNorm(o.quantity).replace(',', '.');
+    const q = qRaw === '' ? 0 : Number(qRaw.replace(/[^\d.]/g, ''));
+    if (qRaw !== '' && !Number.isFinite(q)) r.warnings.push('кол-во не число — поставлю 0');
+    r.quantity = Number.isFinite(q) && q > 0 ? Math.floor(q) : 0;
+    const aRaw = cxNorm(o.active).toLowerCase();
+    if (aRaw === '') r.active = true;
+    else if (/^(да|yes|1|true|активна|активен|включена)$/.test(aRaw)) r.active = true;
+    else if (/^(нет|no|0|false|выкл|отключена|отключен)$/.test(aRaw)) r.active = false;
+    else { r.active = true; r.warnings.push('колонка «Активна» непонятна — считаю «да»'); }
+    r.photos = cxMatchPhotos(r.article);
+    if (!r.photos.length) r.errors.push('фото по артикулу не найдены');
+    const existing = PRODUCTS.find(p => String(p.article).toLowerCase() === r.article.toLowerCase());
+    r.existingId = existing ? existing.id : null;
+    out.push(r);
+  }
+  return out;
+}
+function cxRenderCheck() {
+  const rows = CX.rows = cxValidate(CX.raw);
+  const baseOk = rows.filter(x => !x.errors.length);
+  const bad = rows.length - baseOk.length;
+  const news = baseOk.filter(x => !x.existingId).length;
+  const upds = baseOk.length - news;
+  $('centerSummary').innerHTML = `<b>К публикации: ${baseOk.length} · новых ${news}, обновление ${upds}${bad ? ` · <span style="color:#c00">с ошибками: ${bad} (не опубликуются)</span>` : ''}</b>`;
+  const head = `<tr>${['Артикул','Название','Категория','Сезон','Цена','Размеры','Кол-во','Фото','Комментарий'].map(h => `<th>${h}</th>`).join('')}</tr>`;
+  const body = rows.map(r => {
+    const photos = r.photos.length ? r.photos.length + ' фото' : 'нет';
+    const cls = r.errors.length ? 'bad' : (r.existingId ? 'upd' : 'new');
+    const tag = r.errors.length ? '<span class="cx-tag bad">ошибка</span>' : (r.existingId ? '<span class="cx-tag upd">обновление</span>' : '<span class="cx-tag new">новый</span>');
+    const note = r.errors.length ? r.errors.join('<br>') : (r.warnings.length ? r.warnings.join('<br>') : (r.existingId ? 'изменит существующий товар' : 'создастся новый'));
+    return `<tr class="${cls}"><td>${esc(r.article || '—')}</td><td>${esc(r.title || '—')} ${tag}</td><td>${esc(r.category || '—')}</td><td>${esc(r.season || r.seasonRaw || '—')}</td><td>${esc(r.price || '—')}</td><td>${esc(r.sizes.join(', ') || '—')}</td><td>${r.quantity}</td><td>${photos}</td><td>${note}</td></tr>`;
+  }).join('');
+  $('centerTable').innerHTML = head + body;
+  $('centerCheckWrap').classList.remove('hidden');
+  const btn = $('centerPublishBtn');
+  btn.disabled = !baseOk.length;
+  btn.textContent = baseOk.length ? `Опубликовать (${baseOk.length})` : 'Нечего публиковать';
+  $('centerPublishStatus').textContent = '';
+}
+$('centerTemplateBtn').addEventListener('click', () => {
+  const header = CX_COLS.map(c => c.label);
+  const example = ['19840','Куртка зимняя','куртки','Зима','38900','150,160,170','5','19840.jpg','Зимняя куртка с натуральным мехом','да'];
+  const ws = XLSX.utils.aoa_to_sheet([header, example]);
+  ws['!cols'] = header.map(() => ({ wch: 20 }));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Товары');
+  XLSX.writeFile(wb, 'DetskyHit-shablon.xlsx');
+});
+$('centerPhotosInput').addEventListener('change', e => {
+  CX.files = new Map();
+  for (const f of e.target.files) {
+    CX.files.set(cxPhotoName(f.name), f);
+  }
+  $('centerStatus').textContent = `Фото выбрано: ${CX.files.size} фай(л/ов)`;
+  if (CX.raw.length) cxRenderCheck();
+  e.target.value = '';
+});
+$('centerXlsxInput').addEventListener('change', e => {
+  const f = e.target.files[0]; if (!f) return;
+  $('centerStatus').textContent = 'Читаю Excel…';
+  const fr = new FileReader();
+  fr.onload = () => {
+    try {
+      const wb = XLSX.read(fr.result, { type: 'array' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const raw = XLSX.utils.sheet_to_json(ws, { defval: '', raw: false });
+      CX.raw = raw.filter(r => Object.values(r).some(v => String(v).trim() !== ''));
+      if (!CX.raw.length) { $('centerStatus').textContent = 'В файле нет строк'; return; }
+      $('centerStatus').textContent = `Строк: ${CX.raw.length}`;
+      cxRenderCheck();
+    } catch (err) {
+      $('centerStatus').textContent = 'Не смог прочитать: ' + (err && err.message ? err.message : err);
+    }
+  };
+  fr.readAsArrayBuffer(f);
+  e.target.value = '';
+});
+$('centerPublishBtn').addEventListener('click', async () => {
+  const rows = CX.rows.filter(r => !r.errors.length);
+  if (!rows.length) return;
+  const btn = $('centerPublishBtn'); const st = $('centerPublishStatus');
+  btn.disabled = true; st.style.color = '#555'; st.textContent = 'Загружаю фото…';
+  const productsOut = PRODUCTS.map(p => ({ ...p }));
+  const newCats = new Set();
+  for (let i = 0; i < rows.length; i++) {
+    const r = rows[i];
+    btn.textContent = `Публикую ${i + 1}/${rows.length}…`;
+    const uploaded = [];
+    for (const ph of r.photos) {
+      try {
+        const blob = await shrinkToBlob(ph.file);
+        const dataUrl = await blobToDataUrl(blob);
+        const resp = await fetch('/api/upload', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: PASSWORD, filename: ph.file.name, contentType: 'image/jpeg', data: dataUrl }) });
+        const d = await resp.json();
+        if (resp.ok && d.ok && d.url) uploaded.push(d.url);
+      } catch (_) {}
+    }
+    const idx = productsOut.findIndex(p => String(p.article).toLowerCase() === r.article.toLowerCase());
+    const field = { price: r.price, title: r.title, category: r.category, description: r.description, sizes: r.sizes };
+    let pid;
+    if (idx >= 0) {
+      productsOut[idx] = { ...productsOut[idx], ...field, ...(uploaded.length ? { images: uploaded } : {}) };
+      pid = productsOut[idx].id;
+    } else {
+      pid = (r.article.toUpperCase().replace(/[^A-ZА-Я0-9\-]+/gi, '-') || 'ITEM') + '-' + Date.now().toString(36).slice(-4);
+      let suffix = 2; const baseId = pid;
+      while (productsOut.some(p => p.id === pid)) pid = baseId + '-' + (suffix++);
+      productsOut.push({ id: pid, article: r.article, ...field, color: '', images: uploaded, created_at: new Date().toISOString() });
+    }
+    const meta = productMeta();
+    meta[pid] = { ...(meta[pid] || {}), season: r.season, active: r.active, quantity: r.quantity };
+    SETTINGS.product_meta = JSON.stringify(meta);
+    if (!CX_BUILTIN_CATS.some(([k]) => k === r.category)) newCats.add(r.category);
+    r.pid = pid;
+  }
+  const existingCats = cxCustomCats();
+  const mergedCats = [...new Set([...existingCats, ...newCats])];
+  if (mergedCats.length !== existingCats.length) SETTINGS.custom_categories = JSON.stringify(mergedCats);
+  st.textContent = 'Сохраняю каталог…';
+  const resp = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: PASSWORD, products: productsOut, settings: SETTINGS }) });
+  const d = await resp.json();
+  if (!resp.ok || !d.ok) {
+    st.textContent = 'Ошибка: ' + (d.error || resp.status); st.style.color = '#c00';
+    btn.disabled = false; btn.textContent = `Опубликовать (${rows.length})`;
+    return;
+  }
+  PRODUCTS = productsOut;
+  renderList();
+  populateCategorySelects();
+  st.textContent = `Готово ✓ Опубликовано: ${rows.length}`; st.style.color = '#0a7';
+  btn.textContent = `Опубликовать (${rows.length})`;
+});
+
 // ---------- AI-помощник (Этап 1: чат + предложение → Применить/Отмена) ----------
+
 const AI_LABEL = { price: 'Цена', title: 'Название', description: 'Описание', season: 'Сезон', active: 'Активность' };
 const aiHistory = [];
 let aiBusy = false;
