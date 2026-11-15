@@ -318,124 +318,6 @@ function renderTop() {
     })
     .catch(() => {});
 }
-const gridEl = $('grid');
-let curCat = 'all';
-const filtered = () => { const base = visibleProducts(); return curCat === 'all' ? base : base.filter(p => p.category === curCat); };
-const thumbOf = p => { if (!p) return ''; if (/^https?:\/\//i.test(p)) return p; const base = p.split('/').pop(); return 'thumbs/' + base.replace(/\.(jpg|jpeg|png|webp)$/i, '.jpg'); };
-
-function renderHlbar() {
-  const nav = $('hlbar');
-  const visible = visibleProducts();
-  const counts = {};
-  for (const p of visible) counts[p.category] = (counts[p.category] || 0) + 1;
-  const order = circleOrder();
-  const defs = hlDefs();
-  const byKey = Object.fromEntries(defs.map(d => [d.key, [d.key, d.label, d.img]]));
-  nav.innerHTML = order
-    .map(k => byKey[k])
-    .filter(Boolean)
-    .filter(([k]) => k === 'all' ? visible.length > 0 : (counts[k] || 0) > 0)
-    .map(([k, l, img]) => `<button class="hl${k === curCat ? ' active' : ''}" data-cat="${k}"><span class="hl-circle"><img src="${img}" alt="${l}"></span><span>${l}</span></button>`)
-    .join('');
-  nav.querySelectorAll('.hl').forEach(b => b.addEventListener('click', () => {
-    curCat = b.dataset.cat;
-    nav.querySelectorAll('.hl').forEach(x => x.classList.toggle('active', x === b));
-    renderGrid();
-  }));
-  // if current category was filtered out, reset to All
-  if (!nav.querySelector('.hl.active')) curCat = 'all';
-}
-
-function renderGrid() {
-  const list = filtered();
-  const favs = getFavs();
-  if (!list.length) { gridEl.innerHTML = '<div class="empty"><b>Пока пусто</b>Скоро добавим товары</div>'; return; }
-  gridEl.innerHTML = list.map(p => `
-    <div class="tile" data-id="${esc(p.id)}">
-      <img src="${esc(thumbOf(p.images?.[0] || ''))}" loading="lazy" decoding="async" alt="${esc(p.title || p.article)}">
-      <button class="fav-btn-tile" data-id="${esc(p.id)}" aria-label="В избранное">${favs.includes(p.id) ? HEART_RED : HEART_WHITE}</button>
-      <span class="mocktag">${fmtPrice(p.price)}</span>
-    </div>`).join('');
-}
-gridEl.addEventListener('click', e => {
-  const fav = e.target.closest('.fav-btn-tile');
-  if (fav) {
-    e.stopPropagation();
-    let favs = getFavs();
-    if (favs.includes(fav.dataset.id)) favs = favs.filter(x => x !== fav.dataset.id); else favs.push(fav.dataset.id);
-    setFavs(favs); favBadgeUpdate(); renderGrid(); return;
-  }
-  const tile = e.target.closest('.tile'); if (!tile) return;
-  openViewer(tile.dataset.id);
-});
-
-const viewer = $('viewer');
-/* close handled inside post-head */
-document.addEventListener('keydown', e => { if (e.key === 'Escape') viewer.hidden = true; });
-
-function openViewer(id) {
-  const p = PRODUCTS.find(x => x.id === id); if (!p) return;
-  const favs = getFavs();
-  const isFav = favs.includes(p.id);
-  const imgs = (p.images || []);
-  const hasMany = imgs.length > 1;
-  const slides = imgs.map(img => `<div class="slide"><img src="${esc(img)}" alt="${esc(p.title || p.article)}"></div>`).join('');
-  const dots = hasMany ? imgs.map((_, i) => `<span class="dot${i === 0 ? ' on' : ''}"></span>`).join('') : '';
-  const sizes = (p.sizes || []).map(s => `<button class="ph-size" data-s="${s}">${esc(s)}</button>`).join('');
-  const price = fmtPrice(p.price);
-  const wa = String(SETTINGS.whatsapp || '77015300491').replace(/\D/g, '');
-  const waIcon = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" fill="#ffffff"/></svg>';
-  const planeIcon = '<svg viewBox="0 0 256 256" width="24" height="24" fill="currentColor" aria-hidden="true"><path d="M227.32,28.68a16,16,0,0,0-15.66-4.08l-.15,0L19.57,82.84a16,16,0,0,0-2.49,29.8L102,154l41.3,84.87A15.86,15.86,0,0,0,157.74,248q.69,0,1.38-.06a15.88,15.88,0,0,0,14-11.51l58.2-191.94c0-.05,0-.1,0-.15A16,16,0,0,0,227.32,28.68ZM157.83,231.85l-.05.14,0-.07-40.06-82.3,48-48a8,8,0,0,0-11.31-11.31l-48,48L24.08,98.25l-.07,0,.14,0L216,40Z"></path></svg>';
-  const makeWaLink = () => {
-    const size = ($('posts').querySelector('.ph-size.on') || {}).dataset?.s || '';
-    const msg = `Здравствуйте! Хочу заказать: ${p.title || p.id} (арт. ${p.article})${size ? ', размер ' + size : ''}, цена ${price}`;
-    return 'https://wa.me/' + wa + '?text=' + encodeURIComponent(msg);
-  };
-
-  $('posts').innerHTML = `
-    <article class="post" id="post-${esc(p.id)}">
-      <div class="post-head">
-        <img class="ph-logo" src="logo.png" alt="D|H Detsky Hit">
-        <div class="ph-who">
-          <div class="ph-name">detsky_hit</div>
-          <div class="ph-sub">Detsky Hit · Караганда</div>
-        </div>
-        <button class="ph-x" id="postCloseBtn" aria-label="Закрыть">✕</button>
-      </div>
-      <div class="car-wrap">
-        <div class="car" id="car-${esc(p.id)}">${slides || '<div class="slide"></div>'}</div>
-        ${hasMany ? `<button class="car-nav car-nav-prev" aria-label="Назад"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button><button class="car-nav car-nav-next" aria-label="Вперёд"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button>` : ''}
-        ${dots ? `<div class="dots">${dots}</div>` : ''}
-      </div>
-      <div class="ph-actions">
-        <button class="ph-act ph-fav-act" id="favBtn" aria-label="В избранное"><span id="favHeart">${isFav ? HEART_RED : HEART_WHITE}</span></button>
-        <a class="wa-btn" id="waIconBtn" href="${makeWaLink()}" target="_blank" rel="noopener" aria-label="Написать в WhatsApp">${waIcon}</a>
-        <button class="ph-act ph-share" id="sharePostBtn" aria-label="Поделиться">${planeIcon}</button>
-        <span class="ka-red" aria-label="Kaspi RED"><svg viewBox="0 0 472 150" width="100%" height="46" role="img" aria-label="Kaspi RED"><rect width="472" height="150" rx="17" fill="#F1462E"/><circle cx="76" cy="75" r="44" fill="#ffffff"/><g fill="#F1462E" stroke="#F1462E" stroke-linecap="round" stroke-linejoin="round"><circle cx="62" cy="49" r="7.2" stroke="none"/><path d="M53.6 57.2 Q52.8 57.2 52.6 58 L55 80.5 Q55 82.3 56.9 82.4 L60 82.6 L57.9 96 Q57.8 97.9 60.2 97.9 L66.4 97.9 Q68.8 97.9 68.7 96 L66.6 82.6 L69.9 82.4 Q71.8 82.3 71.8 80.5 L74.5 58 Q74.3 56.3 72.4 56.3 L58.5 56.3 Z" stroke="none"/><line x1="57" y1="60" x2="44" y2="38.5" stroke-width="6.8"/><line x1="70" y1="60" x2="83" y2="38.5" stroke-width="6.8"/><line x1="58.5" y1="92" x2="50.5" y2="105" stroke-width="5"/><line x1="65.5" y1="92" x2="73.5" y2="105" stroke-width="5"/><circle cx="95.5" cy="58.5" r="5.6" stroke="none"/><rect x="87.5" y="63.5" rx="5.5" ry="5.5" width="16" height="19.5" stroke="none"/><line x1="89" y1="67" x2="77.5" y2="52" stroke-width="4.6"/><line x1="102" y1="67" x2="113.5" y2="52" stroke-width="4.6"/><line x1="91.5" y1="82" x2="86" y2="93" stroke-width="3.8"/><line x1="99" y1="82" x2="104.5" y2="93" stroke-width="3.8"/></g><text x="136" y="62" font-family="Arial Black, Arial, sans-serif" font-weight="800" font-size="25" fill="#ffffff" letter-spacing="4">KASPI</text><text x="136" y="113" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="58" fill="#ffffff" letter-spacing="1">RED</text></svg></span>
-      </div>
-      <div class="ph-info">
-        <div class="ph-title">${esc(p.title || ('арт. ' + p.article))}</div>
-        <div class="ph-meta">${price} · арт. ${esc(p.article)}</div>
-        ${sizes ? `<div class="ph-sizes-label">Размеры:</div><div class="ph-sizes" id="sizesRow">${sizes}</div>` : ''}
-        ${p.description ? `<div class="ph-desc">${esc(p.description)}</div>` : ''}
-      </div>
-    </article>`;
-
-  // fav toggle
-  $('favBtn').addEventListener('click', () => {
-    let favs = getFavs();
-    const on = !favs.includes(p.id);
-    if (on) favs = [...favs, p.id]; else favs = favs.filter(x => x !== p.id);
-    setFavs(favs);
-    $('favHeart').innerHTML = on ? HEART_RED : HEART_WHITE;
-    if (on) { $('favBtn').classList.add('bump'); setTimeout(() => $('favBtn').classList.remove('bump'), 520); }
-    favBadgeUpdate();
-    if (gridEl) renderGrid();
-  });
-
-  // close
-  $('postCloseBtn').addEventListener('click', () => { viewer.hidden = true; });
-
   // ---------- share card template ----------
   const shareCardImage = (p, sizeSel) => new Promise(async resolve => {
     const W = 1080, H = 1350;
@@ -586,6 +468,124 @@ function openViewer(id) {
       showToast('Не получилось поделиться');
     }
   };
+const gridEl = $('grid');
+let curCat = 'all';
+const filtered = () => { const base = visibleProducts(); return curCat === 'all' ? base : base.filter(p => p.category === curCat); };
+const thumbOf = p => { if (!p) return ''; if (/^https?:\/\//i.test(p)) return p; const base = p.split('/').pop(); return 'thumbs/' + base.replace(/\.(jpg|jpeg|png|webp)$/i, '.jpg'); };
+
+function renderHlbar() {
+  const nav = $('hlbar');
+  const visible = visibleProducts();
+  const counts = {};
+  for (const p of visible) counts[p.category] = (counts[p.category] || 0) + 1;
+  const order = circleOrder();
+  const defs = hlDefs();
+  const byKey = Object.fromEntries(defs.map(d => [d.key, [d.key, d.label, d.img]]));
+  nav.innerHTML = order
+    .map(k => byKey[k])
+    .filter(Boolean)
+    .filter(([k]) => k === 'all' ? visible.length > 0 : (counts[k] || 0) > 0)
+    .map(([k, l, img]) => `<button class="hl${k === curCat ? ' active' : ''}" data-cat="${k}"><span class="hl-circle"><img src="${img}" alt="${l}"></span><span>${l}</span></button>`)
+    .join('');
+  nav.querySelectorAll('.hl').forEach(b => b.addEventListener('click', () => {
+    curCat = b.dataset.cat;
+    nav.querySelectorAll('.hl').forEach(x => x.classList.toggle('active', x === b));
+    renderGrid();
+  }));
+  // if current category was filtered out, reset to All
+  if (!nav.querySelector('.hl.active')) curCat = 'all';
+}
+
+function renderGrid() {
+  const list = filtered();
+  const favs = getFavs();
+  if (!list.length) { gridEl.innerHTML = '<div class="empty"><b>Пока пусто</b>Скоро добавим товары</div>'; return; }
+  gridEl.innerHTML = list.map(p => `
+    <div class="tile" data-id="${esc(p.id)}">
+      <img src="${esc(thumbOf(p.images?.[0] || ''))}" loading="lazy" decoding="async" alt="${esc(p.title || p.article)}">
+      <button class="fav-btn-tile" data-id="${esc(p.id)}" aria-label="В избранное">${favs.includes(p.id) ? HEART_RED : HEART_WHITE}</button>
+      <span class="mocktag">${fmtPrice(p.price)}</span>
+    </div>`).join('');
+}
+gridEl.addEventListener('click', e => {
+  const fav = e.target.closest('.fav-btn-tile');
+  if (fav) {
+    e.stopPropagation();
+    let favs = getFavs();
+    if (favs.includes(fav.dataset.id)) favs = favs.filter(x => x !== fav.dataset.id); else favs.push(fav.dataset.id);
+    setFavs(favs); favBadgeUpdate(); renderGrid(); return;
+  }
+  const tile = e.target.closest('.tile'); if (!tile) return;
+  openViewer(tile.dataset.id);
+});
+
+const viewer = $('viewer');
+/* close handled inside post-head */
+document.addEventListener('keydown', e => { if (e.key === 'Escape') viewer.hidden = true; });
+
+function openViewer(id) {
+  const p = PRODUCTS.find(x => x.id === id); if (!p) return;
+  const favs = getFavs();
+  const isFav = favs.includes(p.id);
+  const imgs = (p.images || []);
+  const hasMany = imgs.length > 1;
+  const slides = imgs.map(img => `<div class="slide"><img src="${esc(img)}" alt="${esc(p.title || p.article)}"></div>`).join('');
+  const dots = hasMany ? imgs.map((_, i) => `<span class="dot${i === 0 ? ' on' : ''}"></span>`).join('') : '';
+  const sizes = (p.sizes || []).map(s => `<button class="ph-size" data-s="${s}">${esc(s)}</button>`).join('');
+  const price = fmtPrice(p.price);
+  const wa = String(SETTINGS.whatsapp || '77015300491').replace(/\D/g, '');
+  const waIcon = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" fill="#ffffff"/></svg>';
+  const planeIcon = '<svg viewBox="0 0 256 256" width="24" height="24" fill="currentColor" aria-hidden="true"><path d="M227.32,28.68a16,16,0,0,0-15.66-4.08l-.15,0L19.57,82.84a16,16,0,0,0-2.49,29.8L102,154l41.3,84.87A15.86,15.86,0,0,0,157.74,248q.69,0,1.38-.06a15.88,15.88,0,0,0,14-11.51l58.2-191.94c0-.05,0-.1,0-.15A16,16,0,0,0,227.32,28.68ZM157.83,231.85l-.05.14,0-.07-40.06-82.3,48-48a8,8,0,0,0-11.31-11.31l-48,48L24.08,98.25l-.07,0,.14,0L216,40Z"></path></svg>';
+  const makeWaLink = () => {
+    const size = ($('posts').querySelector('.ph-size.on') || {}).dataset?.s || '';
+    const msg = `Здравствуйте! Хочу заказать: ${p.title || p.id} (арт. ${p.article})${size ? ', размер ' + size : ''}, цена ${price}`;
+    return 'https://wa.me/' + wa + '?text=' + encodeURIComponent(msg);
+  };
+
+  $('posts').innerHTML = `
+    <article class="post" id="post-${esc(p.id)}">
+      <div class="post-head">
+        <img class="ph-logo" src="logo.png" alt="D|H Detsky Hit">
+        <div class="ph-who">
+          <div class="ph-name">detsky_hit</div>
+          <div class="ph-sub">Detsky Hit · Караганда</div>
+        </div>
+        <button class="ph-x" id="postCloseBtn" aria-label="Закрыть">✕</button>
+      </div>
+      <div class="car-wrap">
+        <div class="car" id="car-${esc(p.id)}">${slides || '<div class="slide"></div>'}</div>
+        ${hasMany ? `<button class="car-nav car-nav-prev" aria-label="Назад"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button><button class="car-nav car-nav-next" aria-label="Вперёд"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button>` : ''}
+        ${dots ? `<div class="dots">${dots}</div>` : ''}
+      </div>
+      <div class="ph-actions">
+        <button class="ph-act ph-fav-act" id="favBtn" aria-label="В избранное"><span id="favHeart">${isFav ? HEART_RED : HEART_WHITE}</span></button>
+        <a class="wa-btn" id="waIconBtn" href="${makeWaLink()}" target="_blank" rel="noopener" aria-label="Написать в WhatsApp">${waIcon}</a>
+        <button class="ph-act ph-share" id="sharePostBtn" aria-label="Поделиться">${planeIcon}</button>
+        <span class="ka-red" aria-label="Kaspi RED"><svg viewBox="0 0 472 150" width="100%" height="46" role="img" aria-label="Kaspi RED"><rect width="472" height="150" rx="17" fill="#F1462E"/><circle cx="76" cy="75" r="44" fill="#ffffff"/><g fill="#F1462E" stroke="#F1462E" stroke-linecap="round" stroke-linejoin="round"><circle cx="62" cy="49" r="7.2" stroke="none"/><path d="M53.6 57.2 Q52.8 57.2 52.6 58 L55 80.5 Q55 82.3 56.9 82.4 L60 82.6 L57.9 96 Q57.8 97.9 60.2 97.9 L66.4 97.9 Q68.8 97.9 68.7 96 L66.6 82.6 L69.9 82.4 Q71.8 82.3 71.8 80.5 L74.5 58 Q74.3 56.3 72.4 56.3 L58.5 56.3 Z" stroke="none"/><line x1="57" y1="60" x2="44" y2="38.5" stroke-width="6.8"/><line x1="70" y1="60" x2="83" y2="38.5" stroke-width="6.8"/><line x1="58.5" y1="92" x2="50.5" y2="105" stroke-width="5"/><line x1="65.5" y1="92" x2="73.5" y2="105" stroke-width="5"/><circle cx="95.5" cy="58.5" r="5.6" stroke="none"/><rect x="87.5" y="63.5" rx="5.5" ry="5.5" width="16" height="19.5" stroke="none"/><line x1="89" y1="67" x2="77.5" y2="52" stroke-width="4.6"/><line x1="102" y1="67" x2="113.5" y2="52" stroke-width="4.6"/><line x1="91.5" y1="82" x2="86" y2="93" stroke-width="3.8"/><line x1="99" y1="82" x2="104.5" y2="93" stroke-width="3.8"/></g><text x="136" y="62" font-family="Arial Black, Arial, sans-serif" font-weight="800" font-size="25" fill="#ffffff" letter-spacing="4">KASPI</text><text x="136" y="113" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="58" fill="#ffffff" letter-spacing="1">RED</text></svg></span>
+      </div>
+      <div class="ph-info">
+        <div class="ph-title">${esc(p.title || ('арт. ' + p.article))}</div>
+        <div class="ph-meta">${price} · арт. ${esc(p.article)}</div>
+        ${sizes ? `<div class="ph-sizes-label">Размеры:</div><div class="ph-sizes" id="sizesRow">${sizes}</div>` : ''}
+        ${p.description ? `<div class="ph-desc">${esc(p.description)}</div>` : ''}
+      </div>
+    </article>`;
+
+  // fav toggle
+  $('favBtn').addEventListener('click', () => {
+    let favs = getFavs();
+    const on = !favs.includes(p.id);
+    if (on) favs = [...favs, p.id]; else favs = favs.filter(x => x !== p.id);
+    setFavs(favs);
+    $('favHeart').innerHTML = on ? HEART_RED : HEART_WHITE;
+    if (on) { $('favBtn').classList.add('bump'); setTimeout(() => $('favBtn').classList.remove('bump'), 520); }
+    favBadgeUpdate();
+    if (gridEl) renderGrid();
+  });
+
+  // close
+  $('postCloseBtn').addEventListener('click', () => { viewer.hidden = true; });
+
   // share this card
   $('sharePostBtn').addEventListener('click', async () => shareCard(p));
 
