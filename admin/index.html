@@ -57,6 +57,8 @@ button.small{padding:6px 12px;font-size:12px}
 .hl-img-edit svg{width:11px;height:11px;fill:#fff}
 .hl-cat-edit{border:1px solid #d8d2c4;background:#fffdf4;border-radius:8px;width:34px;height:32px;flex:none;display:flex;align-items:center;justify-content:center;cursor:pointer}
 .hl-cat-edit svg{width:16px;height:16px;fill:#7a5a19}
+.hl-cat-del{border:1px solid #f3d2cf;background:#fbf0ef;border-radius:8px;width:34px;height:32px;flex:none;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.hl-cat-del svg{width:15px;height:15px;fill:#c00}
 .hl-set-img{border:1px solid #d8d2c4;background:#fffdf4;border-radius:8px;width:34px;height:32px;flex:none;display:flex;align-items:center;justify-content:center;cursor:pointer}
 .hl-set-img svg{width:16px;height:16px;fill:#7a5a19}
 .hl-edit-arrows{display:flex;gap:6px;flex-wrap:wrap;flex:none}
@@ -235,7 +237,7 @@ button.small{padding:6px 12px;font-size:12px}
       </div>
       <p class="hint">Выключенный сезон скрывает его товары с сайта. Кружки в «Актуальном» исчезают автоматически, если по категории пусто.</p>
       <label style="margin-top:14px">«Актуальное» на сайте — названия, фото, порядок</label>
-      <p class="hint">«+ Новый кружок» создаёт кружок и новую категорию сразу. Напишите название — при «Сохранить настройки» категория переименуется вместе с товарами и кружками. <b>✏ справа от списка</b> — переименовать выбранную категорию. <b>✏ на кружке</b> — сменить картинку (без кропа). <b>↑ Выше / ↓ Ниже</b> — порядок кружков на сайте. <b>🗑 — удалить</b>. Кружок появится на сайте, когда в его категорию попадёт хотя бы один товар.</p>
+      <p class="hint">Все категории — ваши: любую можно переименовать или удалить. <b>✏ — переименовать</b> категорию; <b>🗑 — удалить</b> (спросит, куда перенести товары или удалять вместе с товарами). <b>+ Новый кружок</b> создаёт кружок и новую категорию сразу. <b>✏ на кружке</b> — сменить картинку (без кропа). <b>↑ Выше / ↓ Ниже</b> — порядок на сайте. Картинки для кружка подготовьте заранее. Кружок появится на сайте, когда в его категорию попадёт хотя бы один товар.</p>
       <div class="hl-edit-list" id="hlEditList"></div>
       <button class="hl-add" id="hlAddBtn" type="button">+ Новый кружок</button>
       <div class="row"><button id="saveSettingsBtn">Сохранить настройки</button><span id="settingsStatus" class="ok"></span></div>
@@ -248,6 +250,24 @@ button.small{padding:6px 12px;font-size:12px}
 </div>
 
 <button id="aiFab" class="hidden" type="button" title="AI-помощник">💬</button>
+<div id="catModal" class="modal-overlay hidden" role="dialog" aria-modal="true">
+  <div class="modal-card" style="max-width:440px">
+    <div class="modal-header">
+      <b id="catModalTitle">Удалить категорию</b>
+      <button class="ghost small" id="catModalClose" type="button">Закрыть</button>
+    </div>
+    <div class="modal-body">
+      <p id="catModalText" class="hint" style="margin-top:0"></p>
+      <div id="catModalOptions">
+        <label>Куда перенести товары</label>
+        <select id="catTargetSelect"></select>
+        <div class="row"><button id="catMoveBtn" class="ghost" type="button">Перенести товары и удалить категорию</button></div>
+        <div class="row" style="margin-top:8px"><button id="catDeleteBtn" class="danger" type="button">Удалить категорию вместе с товарами</button></div>
+      </div>
+      <p class="hint" style="margin-top:10px;margin-bottom:0">Изменения вступят в силу после «Сохранить настройки».</p>
+    </div>
+  </div>
+</div>
 <div id="aiPanel" class="hidden" role="dialog" aria-label="AI-помощник">
   <div class="ai-head"><b>AI-помощник</b><button id="aiClose" class="ghost small" type="button">×</button></div>
   <div id="aiMessages"></div>
@@ -561,7 +581,8 @@ function renderHlEditor() {
         <select class="hl-cat" data-i="${i}">
           ${[['all','Все товары'], ...cxAllCats()].map(([k,l]) => `<option value="${k}" ${row.category===k?'selected':''}>${esc(l)}</option>`).join('')}
         </select>
-        <button type="button" class="hl-cat-edit" data-i="${i}" title="Переименовать выбранную категорию"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg></button>
+        <button type="button" class="hl-cat-edit" data-i="${i}" title="Переименовать категорию"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg></button>
+        <button type="button" class="hl-cat-del" data-i="${i}" title="Удалить категорию"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg></button>
         <div class="hl-edit-arrows"><button type="button" class="hl-up" data-i="${i}" title="Поднять кружок выше по списку">↑ Выше</button><button type="button" class="hl-down" data-i="${i}" title="Опустить кружок ниже по списку">↓ Ниже</button></div>
       </div>
     </div>`).join('');
@@ -593,8 +614,8 @@ function renderHlEditor() {
     const sel = bot ? bot.querySelector('.hl-cat') : null;
     const cur = sel ? sel.value : null;
     if (!cur) return;
-    if (cur === 'all' || CX_BUILTIN_CATS.some(([k]) => k === cur)) {
-      alert('Встроенные категории (Все товары, Куртки, Свитшоты, Рубашки, Штаны) переименовать нельзя');
+    if (cur === 'all') {
+      alert('«Все товары» — это режим показа всей витрины, отдельной категории для него нет.');
       return;
     }
     const name = prompt('Новое название категории:', cur);
@@ -603,6 +624,18 @@ function renderHlEditor() {
     populateCategorySelects();
     renderHlEditor();
     invalidateHlSave();
+  }));
+  list.querySelectorAll('.hl-cat-del').forEach(btn => btn.addEventListener('click', e => {
+    const bot = e.currentTarget.closest('.hl-edit-bot');
+    const sel = bot ? bot.querySelector('.hl-cat') : null;
+    const cur = sel ? sel.value : null;
+    if (!cur) return;
+    if (cur === 'all') {
+      alert('«Все товары» удалить нельзя — это режим показа всей витрины.');
+      return;
+    }
+    const count = PRODUCTS.filter(p => String(p.category || '').toLowerCase() === cur).length;
+    openCatDeleteModal(cur, count);
   }));
 }
 function invalidateHlSave() { $('settingsStatus').textContent = 'Есть изменения, не сохранено'; $('settingsStatus').style.color = '#c00'; }
@@ -669,7 +702,7 @@ function openAdmin(){
   $('loginScreen').classList.add('hidden');
   $('adminScreen').classList.remove('hidden');
   $('aiFab').classList.remove('hidden');
-  HL_ROWS = parseHighlights(); renderList(); renderSettings(); renderSeasonToggles(); renderHlEditor(); populateCategorySelects();
+  HL_ROWS = parseHighlights(); renderList(); renderSettings(); renderSeasonToggles(); cxSeedCategories(); renderHlEditor(); populateCategorySelects();
 }
 const saved = sessionStorage.getItem(PWD_KEY);
 if (saved){ PASSWORD = saved; fetch(API, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ password: saved }) }).then(r => r.json()).then(d => { if (d && d.ok){ PRODUCTS = d.products; SETTINGS = d.settings || {}; openAdmin(); } else { sessionStorage.removeItem(PWD_KEY); } }).catch(()=>{}); }
@@ -762,13 +795,25 @@ function cxCustomCats() {
   return Array.isArray(a) ? a.map(x => String(x).trim()).filter(Boolean) : [];
 }
 function cxAllCats() {
-  const out = CX_BUILTIN_CATS.map(([k, l]) => [k, l]);
-  const seen = new Set(out.map(x => x[0]));
+  const out = [];
+  const seen = new Set(['all']);
   for (const c of cxCustomCats()) {
-    const k = c.toLowerCase();
-    if (!seen.has(k)) { seen.add(k); out.push([k, c]); }
+    const k = String(c).trim().toLowerCase().replace(/\s+/g, ' ');
+    if (!k || seen.has(k)) continue;
+    seen.add(k);
+    out.push([k, k.charAt(0).toUpperCase() + k.slice(1)]);
   }
   return out;
+}
+function cxSeedCategories() {
+  if (String(SETTINGS.categories_seeded || '') === '1') return;
+  const present = cxCustomCats().map(c => String(c).trim().toLowerCase().replace(/\s+/g, ' ')).filter(Boolean);
+  const used = new Set();
+  for (const p of PRODUCTS) { const k = String(p.category||'').toLowerCase().trim(); if (k && k !== 'all') used.add(k); }
+  for (const r of HL_ROWS) { const k = String(r.category||'').toLowerCase().trim(); if (k && k !== 'all') used.add(k); }
+  const merged = [...new Set(['куртки', 'худи', 'рубашки', 'штаны', ...present, ...used])];
+  SETTINGS.custom_categories = JSON.stringify(merged);
+  SETTINGS.categories_seeded = '1';
 }
 function populateCategorySelects() {
   const cats = cxAllCats();
@@ -969,6 +1014,59 @@ $('centerPublishBtn').addEventListener('click', async () => {
   populateCategorySelects();
   st.textContent = `Готово ✓ Опубликовано: ${rows.length}`; st.style.color = '#0a7';
   btn.textContent = `Опубликовать (${rows.length})`;
+});
+
+function removeCustomCategory(cat) {
+  const f = String(cat || '').toLowerCase();
+  SETTINGS.custom_categories = JSON.stringify(cxCustomCats().filter(c => String(c).trim().toLowerCase() !== f));
+}
+function afterCatAction(msg) {
+  renderHlEditor();
+  populateCategorySelects();
+  renderList();
+  invalidateHlSave();
+  $('settingsStatus').textContent = msg + ' Нажмите «Сохранить настройки».';
+  $('settingsStatus').style.color = '#0a7';
+}
+function openCatDeleteModal(cat, count) {
+  const title = $('catModalTitle');
+  const text = $('catModalText');
+  const target = $('catTargetSelect');
+  const others = cxAllCats().filter(([k]) => k !== cat);
+  title.textContent = `Удалить категорию «${cat}»?`;
+  text.textContent = count
+    ? `В категории — ${count} товар(ов). Две дороги: перенести их в другую категорию (появится в кружках с ними) или удалить их вместе с категорией (это удалит и сами товары).`
+    : 'Категория пуста. Удалить можно сразу.';
+  target.innerHTML = others.map(([k, l]) => `<option value="${esc(k)}">${esc(l)}</option>`).join('');
+  $('catModalOptions').classList.toggle('hidden', others.length === 0);
+  $('catMoveBtn').textContent = `Перенести ${count} товар(а) в выбранную категорию`;
+  $('catDeleteBtn').textContent = `Удалить категорию вместе с ${count} товар(ом/ами)`;
+  $('catModal').classList.remove('hidden');
+  window.__catDeleteTarget = { cat, count };
+}
+$('catModalClose').addEventListener('click', () => $('catModal').classList.add('hidden'));
+$('catMoveBtn').addEventListener('click', () => {
+  const ctx = window.__catDeleteTarget; if (!ctx) return;
+  const { cat, count } = ctx;
+  const target = $('catTargetSelect').value;
+  if (!target) { alert('Сначала создайте пустую категорию (через «+ Новый кружок») для переноса.'); return; }
+  let n = 0;
+  for (const p of PRODUCTS) if (String(p.category || '').toLowerCase() === cat) { p.category = target; n++; }
+  for (const row of HL_ROWS) if (String(row.category || '').toLowerCase() === cat) row.category = target;
+  removeCustomCategory(cat);
+  $('catModal').classList.add('hidden');
+  afterCatAction(`Категория «${cat}» удалена. Товары (${n}) перенесены в «${target}».`);
+});
+$('catDeleteBtn').addEventListener('click', () => {
+  const ctx = window.__catDeleteTarget; if (!ctx) return;
+  const { cat, count } = ctx;
+  const ok = window.confirm(`Удалить категорию «${cat}» вместе с ${count} товар(ом/ами)? Это нельзя отменить.`);
+  if (!ok) return;
+  PRODUCTS = PRODUCTS.filter(p => String(p.category || '').toLowerCase() !== cat);
+  for (const row of HL_ROWS) if (String(row.category || '').toLowerCase() === cat) row.category = 'all';
+  removeCustomCategory(cat);
+  $('catModal').classList.add('hidden');
+  afterCatAction(`Категория «${cat}» удалена вместе с ${count} товар(ом/ами).`);
 });
 
 // ---------- AI-помощник (Этап 1: чат + предложение → Применить/Отмена) ----------
