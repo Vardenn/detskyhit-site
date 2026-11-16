@@ -303,7 +303,8 @@ button.small{padding:6px 12px;font-size:12px}
 </div>
 <div id="adminToast" class="hidden" role="status"></div>
 <div id="aiPanel" class="hidden" role="dialog" aria-label="AI-помощник">
-  <div class="ai-head"><b>AI-помощник</b><button id="aiClose" class="ghost small" type="button">×</button></div>
+  <div class="ai-head"><b>AI-помощник</b><div style="display:flex;gap:6px;align-items:center"><button id="debugToggleBtn" class="ghost small" type="button" aria-pressed="false">🐞 Отладка: выкл</button><button id="aiClose" class="ghost small" type="button">×</button></div></div>
+  <div id="debugRow" class="hidden" style="display:flex;gap:8px;padding:8px 10px;border-bottom:1px solid #eee;align-items:center"><button class="ghost small" id="debugScanBtn" type="button">🔍 Сканировать админку</button><span class="hint" style="margin:0">Ничего не чинит сам — только показывает</span></div>
   <div id="aiMessages"></div>
   <form id="aiForm"><input id="aiInput" type="text" placeholder="Например: арт. 13398 цену 25000" autocomplete="off"><button type="submit">➤</button></form>
 </div>
@@ -414,8 +415,8 @@ async function saveAll(){
   if (!Array.isArray(PRODUCTS) || PRODUCTS.length === 0){ status.textContent = 'Ошибка: товары не загружены'; status.style.color='#c00'; return; }
   // delete button removes from UI but should also persist empty arrays
   const r = await fetch(API, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ password: PASSWORD, products: PRODUCTS, settings: SETTINGS }) });
-  const d = await r.json();
-  if (!r.ok || d.error){ status.textContent = 'Ошибка: ' + (d.error || r.status); status.style.color='#c00'; return; }
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok || d.error){ status.textContent = debugSaveFailure(d, r.status); status.style.color='#c00'; return; }
   status.textContent = 'Сохранено'; status.style.color='#0a7';
 }
 $('saveAllBtn').onclick = saveAll;
@@ -530,9 +531,9 @@ $('saveProductBtn').onclick = () => {
   const status = $('productStatus');
   fetch(API, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ password: PASSWORD, products: PRODUCTS, settings: SETTINGS }) })
     .then(async r => {
-      const d = await r.json();
+      const d = await r.json().catch(() => ({}));
       if (r.ok && d.ok){ status.textContent = 'Сохранено'; status.style.color='#0a7'; closeModal(); renderList(); }
-      else { status.textContent = 'Ошибка: ' + (d.error || r.status); status.style.color='#c00'; }
+      else { status.textContent = debugSaveFailure(d, r.status); status.style.color='#c00'; }
     })
     .catch(() => { status.textContent = 'Ошибка сети'; status.style.color='#c00'; });
 };
@@ -721,7 +722,7 @@ $('saveSettingsBtn').onclick = async () => {
     const r = await fetch(API, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ password: PASSWORD, products: PRODUCTS, settings: SETTINGS }) });
     let d = {}; try { d = await r.json(); } catch(_) {}
     const ok = r.ok && !d.error;
-    $('settingsStatus').textContent = ok ? 'Сохранено' : 'Ошибка: ' + (d.error || r.status);
+    $('settingsStatus').textContent = ok ? 'Сохранено' : debugSaveFailure(d, r.status);
     $('settingsStatus').style.color = ok ? '#0a7' : '#c00';
   } catch (err) {
     $('settingsStatus').textContent = 'Ошибка сети';
@@ -1144,8 +1145,100 @@ $('renameCancelBtn').addEventListener('click', () => $('renameModal').classList.
 $('renameClose').addEventListener('click', () => $('renameModal').classList.add('hidden'));
 $('renameInput').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); $('renameSaveBtn').click(); } });
 
-// ---------- AI-помощник (Этап 1: чат + предложение → Применить/Отмена) ----------
+// ---------- режим отладки: локальная диагностика, ничего не чинит сам ----------
+let DEBUG_MODE = false;
+function setDebugMode(on) {
+  DEBUG_MODE = !!on;
+  const btn = $('debugToggleBtn');
+  const row = $('debugRow');
+  if (btn) { btn.textContent = '🐞 Отладка: ' + (DEBUG_MODE ? 'вкл' : 'выкл'); btn.setAttribute('aria-pressed', String(DEBUG_MODE)); }
+  if (row) row.classList.toggle('hidden', !DEBUG_MODE);
+}
+$('debugToggleBtn').addEventListener('click', () => setDebugMode(!DEBUG_MODE));
+$('debugScanBtn').addEventListener('click', () => runDiagnostics());
 
+function debugIssue(text, fix) {
+  return { text, fix: fix || null };
+}
+function debugScan() {
+  const issues = [];
+  const cats = new Set(cxCustomCats().map(c => String(c).trim().toLowerCase()));
+  for (const p of PRODUCTS) {
+    const imgs = Array.isArray(p.images) ? p.images.filter(Boolean).length : 0;
+    if (!imgs) issues.push(debugIssue(`В товаре «${p.title || p.id}» (арт. ${p.article || '—'}) нет ни одного фото`, () => setActiveInMeta(p.id, false)));
+    const digits = String(p.price || '').replace(/[^\d]/g, '');
+    if (!digits) issues.push(debugIssue(`В товаре «${p.title || p.id}» (арт. ${p.article || '—'}) нет цены`, () => { p.price = '0 KZT'; renderList(); showToast('Цена поставлена 0 KZT. Не забудьте «Сохранить всё».'); }));
+    const art = String(p.article || '').trim();
+    if (!art) issues.push(debugIssue(`В товаре «${p.title || p.id}» не указан артикул`, () => { p.article = p.id; renderList(); showToast('Артикул подставлен из id товара.'); }));
+    if (!Array.isArray(p.sizes) || !p.sizes.length) issues.push(debugIssue(`В товаре «${p.title || p.id}» (арт. ${p.article || '—'}) не указаны размеры`));
+    const cat = String(p.category || '').toLowerCase();
+    if (!cat) issues.push(debugIssue(`В товаре «${p.title || p.id}» (арт. ${p.article || '—'}) не указана категория`));
+    else if (!cats.has(cat)) issues.push(debugIssue(`Категория «${p.category}» у товара «${p.title || p.id}» не входит в список — создайте её через «+ Новый кружок» или укажите другую`, () => { const merged = [...new Set([...cxCustomCats(), cat])]; SETTINGS.custom_categories = JSON.stringify(merged); populateCategorySelects(); showToast(`Категория «${cat}» добавлена. Нажмите «Сохранить настройки».`); }));
+  }
+  const hlMissing = HL_ROWS.filter(r => r.category && r.category !== 'all' && !PRODUCTS.some(p => String(p.category || '').toLowerCase() === String(r.category).toLowerCase()));
+  for (const row of hlMissing) issues.push(debugIssue(`Кружок «${row.label}» спрячется на сайте: в категории «${row.category}» пока нет товаров`));
+  const pending = String($('settingsStatus')?.textContent || '').includes('не сохранено') || String($('productStatus')?.textContent || '').includes('Сохраняю');
+  if (pending) issues.push(debugIssue('Есть изменения, не сохранённые на сервере. Нажмите «Сохранить всё» / «Сохранить настройки».'));
+  return issues;
+}
+function setActiveInMeta(id, active) {
+  const meta = productMeta();
+  meta[id] = { ...(meta[id] || {}), active };
+  SETTINGS.product_meta = JSON.stringify(meta);
+  renderList();
+  showToast(active ? 'Товар включён.' : 'Товар помечен неактивным — на сайте скрыт. Нажмите «Сохранить всё».');
+}
+function runDiagnostics() {
+  $('aiPanel').classList.remove('hidden');
+  if (!$('aiMessages').children.length) aiPushMessage('bot', 'Привет! Я AI-помощник.');
+  const issues = debugScan();
+  if (!issues.length) { aiPushMessage('bot', 'Осмотр закончен — критичных проблем в админке не вижу.'); return; }
+  aiPushMessage('bot', `Осмотр закончен. Проблемы (${issues.length}):`);
+  issues.forEach((issue, idx) => {
+    const div = document.createElement('div');
+    div.className = 'ai-msg bot';
+    div.innerHTML = '<b>' + (idx + 1) + '.</b> ' + esc(issue.text) + (issue.fix ? '<div class="row" style="margin-top:6px"><button type="button" class="ghost small" data-fix>Исправить</button></div>' : '');
+    if (issue.fix) {
+      div.querySelector('[data-fix]').addEventListener('click', () => {
+        try { issue.fix(); div.querySelector('[data-fix]').disabled = true; div.querySelector('[data-fix]').textContent = 'Сделано ✓'; }
+        catch (err) { aiPushMessage('bot', 'Не вышло исправить: ' + (err && err.message ? err.message : err), true); }
+      });
+    }
+    $('aiMessages').appendChild(div);
+  });
+  aiPushMessage('bot', 'Ничего не чиню сам. Если поставить отметку «Исправить» — применю только после вашего подтверждения кнопкой. После любых исправлений жмите «Сохранить всё».');
+}
+function explainServerError(raw) {
+  const s = String(raw || '');
+  const rules = [
+    { re: /duplicate key value violates unique constraint "([^"]+)"/i, text: m => `Дублирующийся ключ в базе: два товара с одинаковым значением «${m[1]}» (обычно это артикул). Найдите одинаковые артикулы в списке и переименуйте.` },
+    { re: /All object keys must match/i, text: () => 'У товаров в одном запросе разные наборы полей (обычно это следствие ручного импорта/правки строк). Сохранить массово не получится — выровняйте строки или сохраните каталог из «Сохранить всё».' },
+    { re: /null value in column "([^"]+)" violates not-null constraint/i, text: m => `В поле «${m[1]}» у одного из товаров пусто, а сервер требует его обязательным. Проверьте артикулы и названия на пустые значения.` },
+    { re: /violates foreign key constraint "([^"]+)"/i, text: m => `Связь нарушена в поле «${m[1]}»: скорее всего, ссылка на несуществующий товар или запись. Проверьте, не ссылаетесь ли вы на удалённый товар.` },
+    { re: /could not find the '([^']+)' column of '([^']+)' in the schema cache/i, text: m => `Колонка «${m[1]}» в таблице «${m[2]}» не найдена в базе. Видимо, где-то опечатка или ещё не накатилось обновление схемы.` },
+    { re: /invalid input syntax for type ([a-z_]+): "([^"]+)"/i, text: m => `Значение «${m[2]}» не подходит для поля типа ${m[1]}. Проверьте, где в карточке/импорте должно быть число или дата.` },
+    { re: /Пустой список товаров/i, text: () => 'Список товаров пуст — сохранять нечего. Если вы удалили все товары, это нормально; для очистки каталога удаляйте товары по одному.' },
+    { re: /У товара .* не указан артикул/i, text: () => 'У одного из товаров пустой артикул. Чинится: поставьте артикул (и id тоже), иначе сервер не примет каталог.' },
+  ];
+  for (const { re, text } of rules) {
+    const m = s.match(re);
+    if (m) return text(m);
+  }
+  return 'Не удалось сохранить. Техническая причина в ответе сервера ниже — перешлите мне, если не разберётесь.';
+}
+function debugSaveFailure(d, status) {
+  const raw = (d && (d.details || d.error)) ? String(d.details || d.error) : ('HTTP ' + status);
+  const friendly = explainServerError(raw);
+  if (DEBUG_MODE) {
+    $('aiPanel').classList.remove('hidden');
+    aiPushMessage('bot', 'Не сохранилось.\n\n' + friendly + '\n\nТехнические детали:\n' + raw.slice(0, 600), true);
+  }
+  return friendly.length > 220 ? friendly.slice(0, 220) + '…' : friendly;
+}
+
+
+
+// ---------- AI-помощник (Этап 1: чат + предложение → Применить/Отмена) ----------
 const AI_LABEL = { price: 'Цена', title: 'Название', description: 'Описание', season: 'Сезон', active: 'Активность' };
 const aiHistory = [];
 let aiBusy = false;
@@ -1204,6 +1297,11 @@ function aiRenderProposal(proposal) {
   });
 }
 async function aiAsk(text) {
+  if (/^(проверь|сканируй|осмотр|диагностика|скан)/i.test(String(text).trim()) && DEBUG_MODE) {
+    aiPushMessage('user', text);
+    runDiagnostics();
+    return;
+  }
   if (aiBusy) return;
   aiBusy = true;
   aiPushMessage('user', text);
