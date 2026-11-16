@@ -56,6 +56,9 @@ button.small{padding:6px 12px;font-size:12px}
 .hl-edit-del{border:0;background:#fbf0ef;color:#c00;border-radius:6px;width:32px;height:32px;font-size:18px;cursor:pointer;line-height:1}
 .hl-set-img{border:0;background:#f4f4f4;border-radius:6px;width:32px;height:32px;font-size:16px;cursor:pointer}
 .hl-add{border:1px dashed #aaa;background:#fff;color:#333;border-radius:10px;padding:8px 12px;font-size:13px;font-weight:600;cursor:pointer;margin-top:6px}
+.hl-img-wrap{position:relative;cursor:pointer;flex:none;display:inline-flex;border-radius:50%}
+.hl-img-edit{position:absolute;right:-2px;bottom:-2px;width:22px;height:22px;border-radius:50%;background:#111;color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;pointer-events:none}
+.hl-cat-edit{border:1px solid #ddd;background:#fff;border-radius:8px;width:30px;height:30px;font-size:14px;cursor:pointer;flex:none}
 
 .product-item.is-off{opacity:.55}
 .product-item.is-off img{filter:grayscale(1)}
@@ -228,7 +231,7 @@ button.small{padding:6px 12px;font-size:12px}
       </div>
       <p class="hint">Выключенный сезон скрывает его товары с сайта. Кружки в «Актуальном» исчезают автоматически, если по категории пусто.</p>
       <label style="margin-top:14px">«Актуальное» на сайте — названия, фото, порядок</label>
-      <p class="hint">Красной кистью — удалить. ⇅ — поднять/опустить. 🖼 — сменить фото (первое — лого магазина).</p>
+      <p class="hint">«+ Новый кружок» создаёт кружок и новую категорию сразу (например «Новая категория»). Напишите название — при «Сохранить настройки» категория переименуется вместе с товарами и кружками. ✏ справа от выпадающего списка — переименовать выбранную категорию. ✏ на кружке — сменить картинку (простая, без кропа). Кружок появится на сайте, когда в его категорию попадёт хотя бы один товар.</p>
       <div class="hl-edit-list" id="hlEditList"></div>
       <button class="hl-add" id="hlAddBtn" type="button">+ Новый кружок</button>
       <div class="row"><button id="saveSettingsBtn">Сохранить настройки</button><span id="settingsStatus" class="ok"></span></div>
@@ -510,12 +513,42 @@ function parseHighlights() {
   return HL_DEFAULTS();
 }
 function imgUrlHl(u) { return /^https?:\/\//i.test(u) ? u : '/' + u; }
+function uniqueCustomCat(base) {
+  const used = new Set(['all', ...CX_BUILTIN_CATS.map(([k]) => k), ...cxCustomCats().map(c => c.toLowerCase())]);
+  let k = String(base).trim().toLowerCase().replace(/\s+/g, ' ') || 'новая категория';
+  if (!used.has(k)) return k;
+  let i = 2;
+  while (used.has(k + ' ' + i)) i++;
+  return k + ' ' + i;
+}
+function renameCategory(from, to) {
+  const f = String(from || '').trim().toLowerCase();
+  const t = String(to || '').trim().toLowerCase().replace(/\s+/g, ' ');
+  if (!f || !t || f === t) return;
+  const arr = cxCustomCats().map(c => String(c).trim().toLowerCase().replace(/\s+/g, ' '));
+  const merged = arr.map(c => (c === f ? t : c));
+  if (!merged.includes(t)) merged.push(t);
+  SETTINGS.custom_categories = JSON.stringify([...new Set(merged)]);
+  for (const p of PRODUCTS) if (String(p.category || '').toLowerCase() === f) p.category = t;
+  for (const row of HL_ROWS) if (String(row.category || '').toLowerCase() === f) row.category = t;
+}
+function syncCircleCategoryRenames() {
+  for (const row of HL_ROWS) {
+    if (row._autoCat && String(row.category || '').toLowerCase() === row._autoCat) {
+      const desired = String(row.label || '').trim().toLowerCase().replace(/\s+/g, ' ');
+      if (desired && desired !== row._autoCat) {
+        renameCategory(row._autoCat, desired);
+        row._autoCat = desired;
+      }
+    }
+  }
+}
 function renderHlEditor() {
   const list = $('hlEditList');
   list.innerHTML = HL_ROWS.map((row, i) => `
     <div class="hl-edit" data-i="${i}">
       <div class="hl-edit-top">
-        <img src="${esc(imgUrlHl(row.img))}" alt="" class="hl-img-preview">
+        <div class="hl-img-wrap"><img src="${esc(imgUrlHl(row.img))}" alt="" class="hl-img-preview"><span class="hl-img-edit">✏</span></div>
         <input type="text" class="hl-label" value="${esc(row.label)}" data-i="${i}" placeholder="Название, например: Спортивные костюмы" autocomplete="off" spellcheck="false">
         <button type="button" class="hl-set-img" data-i="${i}" title="Фото кружка">🖼</button>
         <button type="button" class="hl-edit-del" data-i="${i}" title="Удалить">×</button>
@@ -524,6 +557,7 @@ function renderHlEditor() {
         <select class="hl-cat" data-i="${i}">
           ${[['all','Все товары'], ...cxAllCats()].map(([k,l]) => `<option value="${k}" ${row.category===k?'selected':''}>${esc(l)}</option>`).join('')}
         </select>
+        <button type="button" class="hl-cat-edit" data-i="${i}" title="Переименовать выбранную категорию">✏</button>
         <div class="hl-edit-arrows"><button type="button" class="hl-up" data-i="${i}">▲</button><button type="button" class="hl-down" data-i="${i}">▼</button></div>
       </div>
     </div>`).join('');
@@ -545,16 +579,39 @@ function renderHlEditor() {
     window.__hlUploadIdx = Number(e.currentTarget.dataset.i);
     $('hlImgInput').click();
   }));
-  list.querySelectorAll('.hl-img-preview').forEach(img => img.addEventListener('click', e => {
-    const row = img.closest('.hl-edit');
-    row?.querySelector('.hl-label')?.focus();
+  list.querySelectorAll('.hl-img-wrap').forEach(wrap => wrap.addEventListener('click', () => {
+    const row = wrap.closest('.hl-edit');
+    window.__hlUploadIdx = Number(row?.dataset.i);
+    $('hlImgInput').click();
+  }));
+  list.querySelectorAll('.hl-cat-edit').forEach(btn => btn.addEventListener('click', e => {
+    const bot = e.currentTarget.closest('.hl-edit-bot');
+    const sel = bot ? bot.querySelector('.hl-cat') : null;
+    const cur = sel ? sel.value : null;
+    if (!cur) return;
+    if (cur === 'all' || CX_BUILTIN_CATS.some(([k]) => k === cur)) {
+      alert('Встроенные категории (Все товары, Куртки, Свитшоты, Рубашки, Штаны) переименовать нельзя');
+      return;
+    }
+    const name = prompt('Новое название категории:', cur);
+    if (!name) return;
+    renameCategory(cur, String(name).trim());
+    populateCategorySelects();
+    renderHlEditor();
+    invalidateHlSave();
   }));
 }
 function invalidateHlSave() { $('settingsStatus').textContent = 'Есть изменения, не сохранено'; $('settingsStatus').style.color = '#c00'; }
 $('hlAddBtn').addEventListener('click', () => {
-  HL_ROWS.push({ key: 'hl-' + Date.now().toString(36), label: 'Новый кружок', img: 'logo.png', category: 'all' });
+  const catKey = uniqueCustomCat('новая категория');
+  SETTINGS.custom_categories = JSON.stringify([...new Set([...cxCustomCats(), catKey])]);
+  HL_ROWS = [{ key: 'hl-' + Date.now().toString(36), label: 'Новая категория', img: 'logo.png', category: catKey, _autoCat: catKey }, ...HL_ROWS];
   renderHlEditor();
+  populateCategorySelects();
   invalidateHlSave();
+  $('settingsStatus').textContent = 'Кружок создан: новая категория «' + catKey + '» появится в списках. Кружечек на сайте — когда в категорию добавят товар.';
+  $('settingsStatus').style.color = '#0a7';
+  setTimeout(() => document.querySelector('#hlEditList .hl-edit:first-child .hl-label')?.focus(), 60);
 });
 const hlImgInput = document.createElement('input');
 hlImgInput.type = 'file'; hlImgInput.accept = 'image/jpeg,image/png,image/webp,image/avif'; hlImgInput.id = 'hlImgInput'; hlImgInput.hidden = true;
@@ -584,8 +641,11 @@ function renderSettings(){
   $('sWhatsapp').value = SETTINGS.whatsapp || ''; $('sButtonWa').value = SETTINGS.buttonWhatsapp || ''; $('sInstaPosts').value = SETTINGS.instagram_posts || 0; $('sInstaFollowers').value = SETTINGS.instagram_followers || 0;
 }
 $('saveSettingsBtn').onclick = async () => {
+  syncCircleCategoryRenames();
+  populateCategorySelects();
+  renderHlEditor();
   const instaS = [...$('seasonToggles').querySelectorAll('.season-toggle.active')].map(x => x.dataset.s);
-  const instaO = JSON.stringify(HL_ROWS);
+  const instaO = JSON.stringify(HL_ROWS.map(({ _autoCat, ...row }) => row));
   SETTINGS = { ...SETTINGS, seasons_enabled: JSON.stringify(instaS), highlights: instaO, name:$('sName').value, tagline:$('sTagline').value, bio:$('sBio').value, address:$('sAddress').value, city:$('sCity').value, hours:$('sHours').value, whatsapp:$('sWhatsapp').value.replace(/\D/g,''), buttonWhatsapp:$('sButtonWa').value, instagram_posts:$('sInstaPosts').value, instagram_followers:$('sInstaFollowers').value, instagram:'detsky_hit' };
   $('settingsStatus').textContent = 'Сохраняю…';
   $('settingsStatus').style.color = '#555';
