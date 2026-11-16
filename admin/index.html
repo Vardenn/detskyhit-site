@@ -89,6 +89,7 @@ button.small{padding:6px 12px;font-size:12px}
 .cx-btn{display:inline-flex;align-items:center;gap:6px;border:1px solid #111;background:#111;color:#fff;border-radius:8px;padding:10px 18px;font-size:14px;font-weight:600;cursor:pointer}
 .cx-btn.ghost{background:#fff;color:#111}
 .cx-file{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+#adminToast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);z-index:1200;background:#111;color:#fff;border-radius:10px;padding:10px 16px;font-size:13px;max-width:min(92vw,460px);box-shadow:0 12px 40px rgba(0,0,0,.35);text-align:center}
 .cx-table{width:100%;border-collapse:collapse;font-size:12px;margin-top:8px}
 .cx-table th,.cx-table td{border:1px solid #e5e5e5;padding:6px 8px;text-align:left;vertical-align:middle}
 .cx-table th{background:#f4f4f4;font-weight:600}
@@ -268,6 +269,39 @@ button.small{padding:6px 12px;font-size:12px}
     </div>
   </div>
 </div>
+<div id="renameModal" class="modal-overlay hidden" role="dialog" aria-modal="true">
+  <div class="modal-card" style="max-width:420px">
+    <div class="modal-header">
+      <b>Переименовать категорию</b>
+      <button class="ghost small" id="renameClose" type="button">Закрыть</button>
+    </div>
+    <div class="modal-body">
+      <p class="hint" style="margin-top:0">Во всех товарах и стаканах категория получит новое название автоматически.</p>
+      <label>Новое название</label>
+      <input type="text" id="renameInput" autocomplete="off" spellcheck="false">
+      <div class="row" style="margin-top:10px">
+        <button id="renameSaveBtn" type="button">Переименовать</button>
+        <button class="ghost" id="renameCancelBtn" type="button">Отмена</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="confirmModal" class="modal-overlay hidden" role="dialog" aria-modal="true">
+  <div class="modal-card" style="max-width:420px">
+    <div class="modal-header">
+      <b id="confirmTitle">Подтверждение</b>
+      <button class="ghost small" id="confirmClose" type="button">Закрыть</button>
+    </div>
+    <div class="modal-body">
+      <p id="confirmText" class="hint" style="margin-top:0"></p>
+      <div class="row" style="margin-top:10px">
+        <button id="confirmOkBtn" class="danger" type="button">Да</button>
+        <button class="ghost" id="confirmCancelBtn" type="button">Отмена</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="adminToast" class="hidden" role="status"></div>
 <div id="aiPanel" class="hidden" role="dialog" aria-label="AI-помощник">
   <div class="ai-head"><b>AI-помощник</b><button id="aiClose" class="ghost small" type="button">×</button></div>
   <div id="aiMessages"></div>
@@ -482,7 +516,7 @@ $('addPhotoInput').addEventListener('change', async e => {
 });
 $('saveProductBtn').onclick = () => {
   const article = $('fArticle').value.trim();
-  if (!article){ alert('Нужен артикул'); return; }
+  if (!article){ const st = $('productStatus'); if (st){ st.textContent = 'Нужен артикул'; st.style.color = '#c00'; } return; }
   const p = PRODUCTS.find(x => x.id === currentId); if(!p) return;
   p.article = article; p.title = $('fTitle').value.trim(); p.price = $('fPrice').value.trim();
   p.category = $('fCategory').value; p.description = $('fDescription').value;
@@ -502,8 +536,10 @@ $('saveProductBtn').onclick = () => {
     })
     .catch(() => { status.textContent = 'Ошибка сети'; status.style.color='#c00'; });
 };
-$('deleteProductBtn').onclick = () => {
-  if (!currentId) return; if (!confirm('Удалить товар?')) return;
+$('deleteProductBtn').onclick = async () => {
+  if (!currentId) return;
+  const ok = await showConfirm({ title: 'Удалить товар?', text: 'Товар удалится из каталога и с сайта после «Сохранить».', okLabel: 'Удалить' });
+  if (!ok) return;
   PRODUCTS = PRODUCTS.filter(x => x.id !== currentId);
   currentId = null; closeModal(); renderList();
 };
@@ -615,15 +651,10 @@ function renderHlEditor() {
     const cur = sel ? sel.value : null;
     if (!cur) return;
     if (cur === 'all') {
-      alert('«Все товары» — это режим показа всей витрины, отдельной категории для него нет.');
+      showToast('«Все товары» — режим витрины, отдельной категории нет.');
       return;
     }
-    const name = prompt('Новое название категории:', cur);
-    if (!name) return;
-    renameCategory(cur, String(name).trim());
-    populateCategorySelects();
-    renderHlEditor();
-    invalidateHlSave();
+    openRenameModal(cur);
   }));
   list.querySelectorAll('.hl-cat-del').forEach(btn => btn.addEventListener('click', e => {
     const bot = e.currentTarget.closest('.hl-edit-bot');
@@ -631,7 +662,7 @@ function renderHlEditor() {
     const cur = sel ? sel.value : null;
     if (!cur) return;
     if (cur === 'all') {
-      alert('«Все товары» удалить нельзя — это режим показа всей витрины.');
+      showToast('«Все товары» удалить нельзя — это режим показа всей витрины.');
       return;
     }
     const count = PRODUCTS.filter(p => String(p.category || '').toLowerCase() === cur).length;
@@ -1049,7 +1080,7 @@ $('catMoveBtn').addEventListener('click', () => {
   const ctx = window.__catDeleteTarget; if (!ctx) return;
   const { cat, count } = ctx;
   const target = $('catTargetSelect').value;
-  if (!target) { alert('Сначала создайте пустую категорию (через «+ Новый кружок») для переноса.'); return; }
+  if (!target) { showToast('Сначала создайте пустую категорию (через «+ Новый кружок») для переноса.'); return; }
   let n = 0;
   for (const p of PRODUCTS) if (String(p.category || '').toLowerCase() === cat) { p.category = target; n++; }
   for (const row of HL_ROWS) if (String(row.category || '').toLowerCase() === cat) row.category = target;
@@ -1057,10 +1088,10 @@ $('catMoveBtn').addEventListener('click', () => {
   $('catModal').classList.add('hidden');
   afterCatAction(`Категория «${cat}» удалена. Товары (${n}) перенесены в «${target}».`);
 });
-$('catDeleteBtn').addEventListener('click', () => {
+$('catDeleteBtn').addEventListener('click', async () => {
   const ctx = window.__catDeleteTarget; if (!ctx) return;
   const { cat, count } = ctx;
-  const ok = window.confirm(`Удалить категорию «${cat}» вместе с ${count} товар(ом/ами)? Это нельзя отменить.`);
+  const ok = await showConfirm({ title: `Удалить категорию «${cat}»?`, text: `Это удалит категорию и ${count} товар(ов) безвозвратно. Если хотите сохранить товары — нажмите «Перенести товары».`, okLabel: 'Удалить вместе с товарами' });
   if (!ok) return;
   PRODUCTS = PRODUCTS.filter(p => String(p.category || '').toLowerCase() !== cat);
   for (const row of HL_ROWS) if (String(row.category || '').toLowerCase() === cat) row.category = 'all';
@@ -1068,6 +1099,50 @@ $('catDeleteBtn').addEventListener('click', () => {
   $('catModal').classList.add('hidden');
   afterCatAction(`Категория «${cat}» удалена вместе с ${count} товар(ом/ами).`);
 });
+
+// ---------- общие модальные окна (без prompt/confirm/alert) ----------
+let toastTimer = null;
+function showToast(msg) {
+  const el = $('adminToast');
+  if (!el) return;
+  el.textContent = msg;
+  el.classList.remove('hidden');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.add('hidden'), 4200);
+}
+function showConfirm({ title, text, okLabel }) {
+  return new Promise(resolve => {
+    $('confirmTitle').textContent = title || 'Подтверждение';
+    $('confirmText').textContent = text || '';
+    $('confirmOkBtn').textContent = okLabel || 'Да';
+    $('confirmModal').classList.remove('hidden');
+    const close = ok => { $('confirmModal').classList.add('hidden'); resolve(ok); };
+    $('confirmOkBtn').onclick = () => close(true);
+    $('confirmCancelBtn').onclick = () => close(false);
+    $('confirmClose').onclick = () => close(false);
+  });
+}
+function openRenameModal(current) {
+  window.__renameFrom = current;
+  $('renameInput').value = current;
+  $('renameModal').classList.remove('hidden');
+  setTimeout(() => { try { $('renameInput').select(); $('renameInput').focus(); } catch (_) {} }, 40);
+}
+$('renameSaveBtn').addEventListener('click', () => {
+  const from = window.__renameFrom;
+  const to = $('renameInput').value.trim().toLowerCase().replace(/\s+/g, ' ');
+  if (!from) return;
+  if (!to) { showToast('Название не может быть пустым'); return; }
+  renameCategory(from, to);
+  populateCategorySelects();
+  renderHlEditor();
+  invalidateHlSave();
+  $('renameModal').classList.add('hidden');
+  showToast('Категория переименована. Нажмите «Сохранить настройки».');
+});
+$('renameCancelBtn').addEventListener('click', () => $('renameModal').classList.add('hidden'));
+$('renameClose').addEventListener('click', () => $('renameModal').classList.add('hidden'));
+$('renameInput').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); $('renameSaveBtn').click(); } });
 
 // ---------- AI-помощник (Этап 1: чат + предложение → Применить/Отмена) ----------
 
