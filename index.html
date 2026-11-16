@@ -288,9 +288,14 @@ function visibleProducts() {
 }
 const FAVS_KEY = 'detskyhit_favs';
 const HEART = (fill, stroke, size) => `<svg class="heart-ic" viewBox="0 0 24 24" width="${size || 22}" height="${size || 22}" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="${fill}" stroke="${stroke}" stroke-width="1.9" stroke-linejoin="round"/></svg>`;
+const HEART_PATH = 'M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z';
 const HEART_FILLED = HEART('currentColor', 'currentColor', 20);
-const HEART_RED = HEART('#d63b3b', '#d63b3b', 15);
-const HEART_WHITE = `<svg class="heart-ic" viewBox="0 0 24 24" width="21" height="21" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="none" stroke="#ffffff" stroke-width="4.3" stroke-linejoin="round"/><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="none" stroke="#111111" stroke-width="1.9" stroke-linejoin="round"/></svg>`;
+// Полностью красное сердечко: заливка + окантовка
+const HEART_RED = `<svg class="heart-ic" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="${HEART_PATH}" fill="#d63b3b" stroke="#d63b3b" stroke-width="1.9" stroke-linejoin="round"/></svg>`;
+// Контур для фото: белый с тёмной подложкой
+const HEART_WHITE = `<svg class="heart-ic" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="${HEART_PATH}" fill="none" stroke="#ffffff" stroke-width="2.4" stroke-linejoin="round" style="filter:drop-shadow(0 1px 1px rgba(0,0,0,.65))"/></svg>`;
+// Контур в цвет действий (для тёмной/светлой темы)
+const HEART_OUTLINE = `<svg class="heart-ic" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="${HEART_PATH}" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/></svg>`;
 
 let PRODUCTS = [];
 let SETTINGS = { name: 'Detsky Hit', tagline: 'детская одежда', whatsapp: '77015300491', instagram: 'detsky_hit', instagram_posts: '0', instagram_followers: '0', address: '', hours: '', bio: '', city: '', buttonWhatsapp: 'Написать в WhatsApp', buttonDirect: 'Написать в Директ' };
@@ -591,7 +596,7 @@ function renderPostArticle(p) {
       ${dots ? `<div class="dots">${dots}</div>` : ''}
     </div>
     <div class="ph-actions">
-      <button class="ph-act ph-fav-act" aria-label="В избранное"><span class="fav-heart-wrap">${isFav ? HEART_RED : HEART_WHITE}</span></button>
+      <button class="ph-act ph-fav-act" aria-label="В избранное"><span class="fav-heart-wrap">${isFav ? HEART_RED : HEART_OUTLINE}</span></button>
       <a class="wa-btn" href="${makeWaLink()}" target="_blank" rel="noopener" aria-label="Написать в WhatsApp">${waIcon}</a>
       <button class="ph-act ph-share" aria-label="Поделиться">${planeIcon}</button>
       <img class="ka-red" src="kaspi-pill.png" alt="Kaspi RED" width="46" height="15">
@@ -608,7 +613,7 @@ function renderPostArticle(p) {
     const on = !favs.includes(p.id);
     if (on) favs = [...favs, p.id]; else favs = favs.filter(x => x !== p.id);
     setFavs(favs);
-    articleEl.querySelector('.fav-heart-wrap').innerHTML = on ? HEART_RED : HEART_WHITE;
+    articleEl.querySelector('.fav-heart-wrap').innerHTML = on ? HEART_RED : HEART_OUTLINE;
     const btn = articleEl.querySelector('.ph-fav-act');
     if (on) { btn.classList.add('bump'); setTimeout(() => btn.classList.remove('bump'), 520); }
     favBadgeUpdate();
