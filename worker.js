@@ -55,7 +55,7 @@ const RESET_COOLDOWN_MS = 60 * 1000;
 const UPLOAD_PATHS = new Set(['/api/upload']);
 
 // ---------- AI assistant (Этап 1: read + propose/apply, только одиночные правки) ----------
-const AI_PATHS = new Set(['/api/ai', '/api/ai/apply']);
+const AI_PATHS = new Set(['/api/ai', '/api/ai/apply', '/api/ai/voice']);
 const AI_MODEL = '@cf/meta/llama-3.3-70b-instruct-fp8-fast';
 const AI_RATE_LIMIT = 30;
 const AI_RATE_WINDOW_MS = 10 * 60 * 1000;
@@ -198,6 +198,34 @@ async function handleAi(request, env) {
     }
   }
   return json({ ok: true, reply, proposal });
+}
+
+async function handleAiVoice(request, env) {
+  if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY) return json({ error: 'Сервер не настроен' }, 500);
+  if (request.method !== 'POST') return json({ error: 'Method' }, 405);
+  let body = {};
+  try { body = await request.json(); } catch { return json({ error: 'Некорректный запрос' }, 400); }
+  if (!(await checkAdminPassword(env, String(body.password || '')))) return json({ error: 'Неверный пароль' }, 401);
+  const ip = request.headers.get('cf-connecting-ip') || 'unknown';
+  if (!(await aiRateOk(env, ip))) return json({ error: 'Слишком много запросов, попробуйте через 10 минут' }, 429);
+  const ct = String(body.contentType || 'audio/webm');
+  if (!/^audio\/(webm|ogg|oga|opus|mp4|mpeg|wav|x-m4a|m4a)$/i.test(ct)) return json({ error: 'Неподдерживаемый тип аудио' }, 400);
+  const b64 = String(body.data || '').replace(/^data:[^,]+,/, '');
+  if (!b64) return json({ error: 'Нет аудио' }, 400);
+  let bytes;
+  try { bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0)); } catch { return json({ error: 'Повреждённый файл' }, 400); }
+  if (bytes.length > 8 * 1024 * 1024) return json({ error: 'Слишком большое аудио (максимум 8 МБ)' }, 413);
+  if (!env.AI) return json({ error: 'AI binding не настроен' }, 503);
+  let resp;
+  try {
+    resp = await env.AI.run('@cf/openai/whisper', { audio: Array.from(bytes) });
+  } catch (e) {
+    return json({ error: 'Whisper недоступен: ' + (e && e.message ? e.message.slice(0, 300) : String(e)) }, 502);
+  }
+  const text = resp && (resp.text || resp.response || (resp.result && resp.result.text) || '');
+  const trimmed = String(text || '').trim();
+  if (!trimmed) return json({ text: '', error: 'Не расслышал, скажи еще раз, чуть медленнее' });
+  return json({ text: trimmed });
 }
 
 async function handleAiApply(request, env) {
@@ -564,6 +592,7 @@ export default {
       return json(await instaStats(env));
     }
     if (AI_PATHS.has(url.pathname)) {
+      if (url.pathname === '/api/ai/voice') return handleAiVoice(request, env);
       return url.pathname === '/api/ai' ? handleAi(request, env) : handleAiApply(request, env);
     }
     if (RESET_PATHS.has(url.pathname)) {

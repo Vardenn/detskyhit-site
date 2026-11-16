@@ -115,6 +115,9 @@ button.small{padding:6px 12px;font-size:12px}
 #aiForm{display:flex;border-top:1px solid #eee}
 #aiForm input{flex:1;border:0;padding:13px 12px;font-size:13px;outline:none}
 #aiForm button{width:46px;border:0;border-radius:0;background:#111;color:#fff;font-size:16px}
+#aiVoiceBtn{background:#fffdf4 !important;color:#7a431a !important;border-right:1px solid #eee !important}
+#aiVoiceBtn.recording{background:#c00 !important;color:#fff !important}
+#aiVoiceBar[hidden]{display:none}
 .hidden{display:none !important}
 .login-wrap{max-width:380px;margin:80px auto}
 .login-card{background:#fff;border:1px solid #ddd;border-radius:16px;padding:28px;box-shadow:0 4px 24px rgba(0,0,0,.06)}
@@ -306,7 +309,8 @@ button.small{padding:6px 12px;font-size:12px}
   <div class="ai-head"><b>AI-помощник</b><div style="display:flex;gap:6px;align-items:center"><button id="debugToggleBtn" class="ghost small" type="button" aria-pressed="false">🐞 Отладка: выкл</button><button id="aiClose" class="ghost small" type="button">×</button></div></div>
   <div id="debugRow" class="hidden" style="display:flex;gap:8px;padding:8px 10px;border-bottom:1px solid #eee;align-items:center"><button class="ghost small" id="debugScanBtn" type="button">🔍 Сканировать админку</button><span class="hint" style="margin:0">Ничего не чинит сам — только показывает</span></div>
   <div id="aiMessages"></div>
-  <form id="aiForm"><input id="aiInput" type="text" placeholder="Например: арт. 13398 цену 25000" autocomplete="off"><button type="submit">➤</button></form>
+  <div id="aiVoiceBar" class="hidden" style="display:flex;align-items:center;gap:8px;padding:6px 10px;border-top:1px solid #eee;background:#fbfbf2;font-size:12px;color:#7a431a"><span id="aiVoiceDot" style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#c00"></span><span id="aiVoiceText">Идёт запись — говорите</span><span id="aiVoiceTimer" style="margin-left:auto;font-variant-numeric:tabular-nums">0:00</span></div>
+  <form id="aiForm"><input id="aiInput" type="text" placeholder="Например: арт. 13398 цену 25000" autocomplete="off"><button id="aiVoiceBtn" type="button" aria-label="Запись голоса" title="Запись голоса">🎤</button><button id="aiSendBtn" type="submit" aria-label="Отправить" title="Отправить">➤</button></form>
 </div>
 <div id="productModal" class="modal-overlay hidden" role="dialog" aria-modal="true">
   <div class="modal-card">
@@ -1332,6 +1336,135 @@ $('aiForm').addEventListener('submit', e => {
   input.value = '';
   aiAsk(text);
 });
+
+// ---------- Voice input через Whisper (Workers AI) ----------
+const voiceState = { recording: false, recorder: null, stream: null, chunks: [], timer: null, seconds: 0, mime: 'audio/webm' };
+function voiceBestMime() {
+  if (!window.MediaRecorder) return '';
+  const candidates = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus', 'audio/ogg', 'audio/mp4'];
+  for (const c of candidates) { try { if (MediaRecorder.isTypeSupported(c)) return c; } catch (_) {} }
+  return '';
+}
+function voiceFmt(sec) { const m = Math.floor(sec / 60); return m + ':' + String(sec % 60).padStart(2, '0'); }
+function voiceSetUI(phase) {
+  const btn = $('aiVoiceBtn');
+  const bar = $('aiVoiceBar');
+  const txt = $('aiVoiceText');
+  const tm = $('aiVoiceTimer');
+  if (phase === 'idle') {
+    btn.classList.remove('recording'); btn.textContent = '🎤';
+    bar.classList.add('hidden');
+    return;
+  }
+  if (phase === 'recording') {
+    btn.classList.add('recording'); btn.textContent = '■';
+    bar.classList.remove('hidden');
+    txt.textContent = 'Идёт запись — говорите';
+    tm.textContent = voiceFmt(0);
+    return;
+  }
+  if (phase === 'uploading') {
+    btn.classList.remove('recording'); btn.textContent = '🎤';
+    bar.classList.remove('hidden');
+    txt.textContent = 'Слушаю…';
+    tm.textContent = '';
+  }
+}
+function voiceStopStream(s) {
+  try { s && s.getTracks().forEach(t => t.stop()); } catch (_) {}
+}
+async function voiceStart() {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.MediaRecorder) {
+    aiPushMessage('bot', 'Микрофон не поддерживается в этом браузере. Попробуйте Chrome / Safari / Telegram Browser.', true);
+    return;
+  }
+  try {
+    voiceState.stream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, sampleRate: 16000, echoCancellation: true, noiseSuppression: true } });
+  } catch (err) {
+    const name = err && (err.name || '');
+    if (name === 'NotAllowedError' || name === 'SecurityError' || name === 'NotReadableError') {
+      aiPushMessage('bot', 'Нет доступа к микрофону. Разрешите микрофон для сайта в браузере и попробуйте снова.', true);
+    } else if (name === 'NotFoundError') {
+      aiPushMessage('bot', 'Микрофон не найден. Подключите микрофон к телефону или компьютеру.', true);
+    } else {
+      aiPushMessage('bot', 'Микрофон недоступен: ' + (err && err.message ? err.message : String(err)), true);
+    }
+    voiceSetUI('idle');
+    return;
+  }
+  const mime = voiceBestMime();
+  voiceState.mime = mime || 'audio/webm';
+  voiceState.chunks = [];
+  voiceState.seconds = 0;
+  try {
+    voiceState.recorder = new MediaRecorder(voiceState.stream, mime ? { mimeType: mime, audioBitsPerSecond: 64000 } : { audioBitsPerSecond: 64000 });
+  } catch (e) {
+    aiPushMessage('bot', 'Запись не запустилась: ' + (e && e.message ? e.message : e), true);
+    voiceStopStream(voiceState.stream);
+    voiceState.stream = null;
+    voiceSetUI('idle');
+    return;
+  }
+  voiceState.recorder.ondataavailable = e => { if (e.data && e.data.size) voiceState.chunks.push(e.data); };
+  voiceState.recorder.onstop = () => voiceStopAndSend();
+  voiceState.recorder.start(250);
+  voiceState.recording = true;
+  voiceSetUI('recording');
+  clearInterval(voiceState.timer);
+  voiceState.timer = setInterval(() => {
+    voiceState.seconds += 1;
+    const tm = $('aiVoiceTimer'); if (tm) tm.textContent = voiceFmt(voiceState.seconds);
+    if (voiceState.seconds >= 60) {
+      aiPushMessage('bot', 'Слишком длинно. Говорите короче — до 60 секунд.', true);
+      try { voiceState.recorder && voiceState.recorder.stop(); } catch (_) {}
+    }
+  }, 1000);
+}
+function voiceResetTrack() {
+  voiceStopStream(voiceState.stream);
+  voiceState.stream = null;
+  voiceState.recorder = null;
+  voiceState.recording = false;
+  clearInterval(voiceState.timer);
+  voiceSetUI('idle');
+}
+async function voiceStopAndSend() {
+  clearInterval(voiceState.timer);
+  const blob = new Blob(voiceState.chunks, { type: voiceState.mime });
+  voiceStopStream(voiceState.stream);
+  voiceState.stream = null;
+  voiceState.recorder = null;
+  voiceState.recording = false;
+  if (!blob.size) { aiPushMessage('bot', 'Пустой звук. Попробуйте ещё раз — говорите ближе к микрофону.', true); voiceSetUI('idle'); return; }
+  voiceSetUI('uploading');
+  try {
+    const dataUrl = await new Promise((res, rej) => { const fr = new FileReader(); fr.onload = () => res(String(fr.result)); fr.onerror = rej; fr.readAsDataURL(blob); });
+    const resp = await fetch('/api/ai/voice', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: PASSWORD, contentType: String(voiceState.mime).split(';')[0], data: dataUrl }) });
+    let d = {}; try { d = await resp.json(); } catch (_) {}
+    if (!resp.ok) { aiPushMessage('bot', (d && d.error) ? d.error : ('Ошибка сервера ' + resp.status), true); voiceSetUI('idle'); return; }
+    if (d.error && !d.text) { aiPushMessage('bot', d.error, true); $('aiInput').value = ''; voiceSetUI('idle'); return; }
+    const text = String(d.text || '').trim();
+    $('aiInput').value = text;
+    $('aiInput').focus();
+    try { $('aiInput').setSelectionRange(0, text.length); } catch (_) {}
+    showToast('Я услышал. Проверь текст и нажми Отправить.');
+    voiceSetUI('idle');
+  } catch (e) {
+    aiPushMessage('bot', 'Ошибка сети: ' + (e && e.message ? e.message : e), true);
+    voiceSetUI('idle');
+  }
+}
+$('aiVoiceBtn').addEventListener('click', () => {
+  if (voiceState.recording) {
+    $('aiVoiceBar').classList.remove('hidden');
+    $('aiVoiceText').textContent = 'Останавливаю запись…';
+    try { voiceState.recorder && voiceState.recorder.stop(); } catch (_) { voiceResetTrack(); }
+    return;
+  }
+  $('aiPanel').classList.remove('hidden');
+  voiceStart();
+});
+
 // видимость кнопки-чата управляется через openAdmin() и logoutBtn
 </script>
 </body>
