@@ -292,10 +292,10 @@ const HEART_PATH = 'M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7
 const HEART_FILLED = HEART('currentColor', 'currentColor', 20);
 // Полностью красное сердечко: заливка + окантовка
 const HEART_RED = `<svg class="heart-ic" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="${HEART_PATH}" fill="#d63b3b" stroke="#d63b3b" stroke-width="1.9" stroke-linejoin="round"/></svg>`;
-// Контур: чёрный + белая подложка вокруг (видно на светлых и тёмных фото/фонах)
-const HEART_WHITE = `<svg class="heart-ic" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="${HEART_PATH}" fill="none" stroke="#ffffff" stroke-width="4.4" stroke-linejoin="round" style="filter:drop-shadow(0 0 1px rgba(255,255,255,.9))"/><path d="${HEART_PATH}" fill="none" stroke="#111111" stroke-width="1.9" stroke-linejoin="round"/></svg>`;
-// Контур в цвет действий (для тёмной/светлой темы) — тоже чёрный с подсветкой
-const HEART_OUTLINE = `<svg class="heart-ic" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="${HEART_PATH}" fill="none" stroke="#ffffff" stroke-width="4.4" stroke-linejoin="round" style="filter:drop-shadow(0 0 1px rgba(255,255,255,.9))"/><path d="${HEART_PATH}" fill="none" stroke="#111111" stroke-width="1.9" stroke-linejoin="round"/></svg>`;
+// Контур: чёрный с мягкой белой подсветкой вокруг (видно на светлых и тёмных фото/фонах)
+const HEART_WHITE = `<svg class="heart-ic" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="${HEART_PATH}" fill="none" stroke="#111111" stroke-width="2.3" stroke-linejoin="round" style="filter:drop-shadow(0 0 2px rgba(255,255,255,.96))"/></svg>`;
+// Контур в цвет действий (для тёмной/светлой темы) — один путь
+const HEART_OUTLINE = `<svg class="heart-ic" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="${HEART_PATH}" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>`;
 
 let PRODUCTS = [];
 let SETTINGS = { name: 'Detsky Hit', tagline: 'детская одежда', whatsapp: '77015300491', instagram: 'detsky_hit', instagram_posts: '0', instagram_followers: '0', address: '', hours: '', bio: '', city: '', buttonWhatsapp: 'Написать в WhatsApp', buttonDirect: 'Написать в Директ' };
