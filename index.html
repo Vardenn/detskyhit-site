@@ -479,18 +479,42 @@ function renderHlbar() {
   for (const p of visible) counts[p.category] = (counts[p.category] || 0) + 1;
   const order = circleOrder();
   const defs = hlDefs();
-  const byKey = Object.fromEntries(defs.map(d => [d.key, [d.key, d.label, d.img]]));
+  const byKey = Object.fromEntries(defs.map(d => [d.key, d]));
   nav.innerHTML = order
     .map(k => byKey[k])
     .filter(Boolean)
-    .filter(([k]) => k === 'all' ? visible.length > 0 : (counts[k] || 0) > 0)
-    .map(([k, l, img]) => `<button class="hl${k === curCat ? ' active' : ''}" data-cat="${k}"><span class="hl-circle"><img src="${img}" alt="${l}"></span><span>${l}</span></button>`)
+    .filter(def => def.key === 'all' ? visible.length > 0 : (counts[def.category] || 0) > 0)
+    .map(def => `<button class="hl${def.category === curCat ? ' active' : ''}" data-cat="${esc(def.category)}"><span class="hl-circle"><img src="${esc(def.img)}" alt="${esc(def.label)}"></span><span>${esc(def.label)}</span></button>`)
     .join('');
   nav.querySelectorAll('.hl').forEach(b => b.addEventListener('click', () => {
     curCat = b.dataset.cat;
     nav.querySelectorAll('.hl').forEach(x => x.classList.toggle('active', x === b));
     renderGrid();
   }));
+  // wheel → горизонтальная прокрутка кружков (как в Instagram)
+  nav.addEventListener('wheel', e => {
+    if (nav.scrollWidth <= nav.clientWidth) return;
+    if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+      e.preventDefault();
+      nav.scrollLeft += e.deltaY;
+    }
+  }, { passive: false });
+  // drag мышью/пальцем → горизонтальная прокрутка
+  let dragX = null;
+  nav.addEventListener('pointerdown', e => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    dragX = { x: e.clientX, left: nav.scrollLeft, moved: false };
+    try { nav.setPointerCapture(e.pointerId); } catch (_) {}
+  });
+  nav.addEventListener('pointermove', e => {
+    if (!dragX) return;
+    const dx = e.clientX - dragX.x;
+    if (Math.abs(dx) > 4) dragX.moved = true;
+    nav.scrollLeft = dragX.left - dx;
+  });
+  const endDrag = () => { dragX = null; };
+  nav.addEventListener('pointerup', endDrag);
+  nav.addEventListener('pointercancel', endDrag);
   // if current category was filtered out, reset to All
   if (!nav.querySelector('.hl.active')) curCat = 'all';
 }
