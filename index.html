@@ -131,12 +131,18 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 .ph-spacing{flex:1}
 .ph-info{padding:14px 16px 18px;background:var(--shell)}
 .ph-title{font-weight:800;font-size:16px;letter-spacing:-.01em;overflow-wrap:anywhere}
-.ph-meta{font-weight:800;margin-top:6px;font-size:15px}
+.ph-price{font-weight:800;font-size:24px;letter-spacing:-.01em;margin-top:6px;color:var(--text)}
+.ph-article{font-size:12px;color:var(--muted);margin-top:4px}
 .ph-sizes{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 4px}
 .ph-size{border:1px solid var(--border);background:var(--chip-bg);color:var(--text);border-radius:10px;padding:9px 14px;font-size:13px;cursor:pointer;font-weight:700;font-family:inherit}
-.ph-size.on{background:var(--text);color:var(--shell);border-color:var(--text)}
-.ph-sizes-label{font-size:13px;color:var(--muted);margin-top:10px}
-.ph-desc{font-size:14px;line-height:1.55;color:var(--desc);margin-top:10px;white-space:pre-line}
+.ph-size.on{background:#111;color:#fff;border-color:#111}
+.ph-sizes-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px}
+.ph-sizes-label{font-size:13px;color:var(--muted);margin:0;font-weight:400}
+.ph-desc-wrap{margin-top:10px}
+.ph-desc{font-size:14px;line-height:1.55;color:var(--desc);white-space:pre-line;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.ph-desc-wrap.open .ph-desc{-webkit-line-clamp:20}
+.ph-desc-more{background:transparent;border:0;color:#0a84ff;font-weight:700;padding:6px 0 0;cursor:pointer;font-family:inherit;font-size:13px;display:none}
+.ph-desc-wrap.has-more .ph-desc-more{display:inline-block}
 .wa-btn{width:46px;height:46px;border-radius:50%;background:#25d366;display:flex;align-items:center;justify-content:center;padding:0;border:0;flex:none}
 .wa-btn svg{width:28px;height:28px}
 @keyframes bump{0%{transform:scale(1)}30%{transform:scale(1.4)}60%{transform:scale(.92)}100%{transform:scale(1)}}
@@ -577,7 +583,8 @@ function renderPostArticle(p) {
   const planeIcon = '<svg viewBox="0 0 256 256" width="24" height="24" fill="currentColor" aria-hidden="true"><path d="M227.32,28.68a16,16,0,0,0-15.66-4.08l-.15,0L19.57,82.84a16,16,0,0,0-2.49,29.8L102,154l41.3,84.87A15.86,15.86,0,0,0,157.74,248q.69,0,1.38-.06a15.88,15.88,0,0,0,14-11.51l58.2-191.94c0-.05,0-.1,0-.15A16,16,0,0,0,227.32,28.68ZM157.83,231.85l-.05.14,0-.07-40.06-82.3,48-48a8,8,0,0,0-11.31-11.31l-48,48L24.08,98.25l-.07,0,.14,0L216,40Z"></path></svg>';
   const makeWaLink = () => {
     const size = (articleEl.querySelector('.ph-size.on') || {}).dataset?.s || '';
-    const msg = `Здравствуйте! Хочу заказать: ${p.title || p.id} (арт. ${p.article})${size ? ', размер ' + size : ''}, цена ${price}`;
+    const art = p.article || p.id;
+    const msg = size ? `Хочу ${art}, размер ${size}` : `Хочу ${art}`;
     return 'https://wa.me/' + wa + '?text=' + encodeURIComponent(msg);
   };
   const articleEl = document.createElement('article');
@@ -605,9 +612,10 @@ function renderPostArticle(p) {
     </div>
     <div class="ph-info">
       <div class="ph-title">${esc(p.title || ('арт. ' + p.article))}</div>
-      <div class="ph-meta">${price} · арт. ${esc(p.article)}</div>
-      ${sizes ? `<div class="ph-sizes-label">Размеры:</div><div class="ph-sizes">${sizes}</div>` : ''}
-      ${p.description ? `<div class="ph-desc">${esc(p.description)}</div>` : ''}
+      <div class="ph-price">${price}</div>
+      <div class="ph-article">арт. ${esc(p.article)}</div>
+      ${sizes ? `<div class="ph-sizes-row"><span class="ph-sizes-label">Размеры:</span><div class="ph-sizes">${sizes}</div></div>` : ''}
+      ${p.description ? `<div class="ph-desc-wrap"><div class="ph-desc">${esc(p.description)}</div><button type="button" class="ph-desc-more">… ещё</button></div>` : ''}
     </div>`;
   articleEl.querySelector('.ph-x').addEventListener('click', () => { viewer.hidden = true; });
   articleEl.querySelector('.ph-fav-act').addEventListener('click', () => {
@@ -621,6 +629,16 @@ function renderPostArticle(p) {
     favBadgeUpdate();
     if (gridEl) renderGrid();
   });
+  const descWrap = articleEl.querySelector('.ph-desc-wrap');
+  if (descWrap) {
+    const desc = descWrap.querySelector('.ph-desc');
+    const moreBtn = descWrap.querySelector('.ph-desc-more');
+    const updateMoreBtnLabel = () => { moreBtn.textContent = descWrap.classList.contains('open') ? 'Свернуть' : '… ещё'; };
+    moreBtn.addEventListener('click', () => { descWrap.classList.toggle('open'); updateMoreBtnLabel(); });
+    requestAnimationFrame(() => {
+      if (desc && (desc.scrollHeight - desc.clientHeight) > 4) descWrap.classList.add('has-more');
+    });
+  }
   articleEl.querySelector('.ph-share').addEventListener('click', () => openShareSheet(shareCtxForProduct(p)));
   const sizesRow = articleEl.querySelector('.ph-sizes');
   if (sizesRow) {
@@ -812,7 +830,12 @@ const MORE_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-w
 function shareCtxForProduct(p) {
   const url = location.origin + location.pathname + '#' + encodeURIComponent(p.id);
   const title = p.title || p.id;
-  return { title, text: `Смотри в Detsky Hit: ${title} — ${fmtPrice(p.price)}`, url };
+  const order = () => {
+    const article = document.querySelector(`article[data-id="${CSS.escape(String(p.id))}"]`);
+    const sizeSel = article?.querySelector('.ph-size.on')?.dataset?.s || '';
+    return `Хочу ${p.article || p.id}${sizeSel ? ', размер ' + sizeSel : ''}`;
+  };
+  return { title, text: `Смотри в Detsky Hit: ${title} — ${fmtPrice(p.price)}`, url, order };
 }
 function shareCtxForPage() {
   return { title: 'Detsky Hit', text: 'Смотри в Detsky Hit — детская одежда 11–15 лет. Караганда, ТД Таир 3, бутик 27.', url: location.href };
@@ -839,7 +862,11 @@ function openShareSheet(ctx) {
   const items = [
     { label: 'WhatsApp', cls: 'share-wa', icon: WA_SVG, act: () => window.open('https://wa.me/?text=' + encodeURIComponent(ctx.text + ' ' + ctx.url), '_blank', 'noopener,noreferrer') },
     { label: 'Telegram', cls: 'share-tg', icon: TG_SVG, act: () => window.open('https://t.me/share/url?url=' + encodeURIComponent(ctx.url) + '&text=' + encodeURIComponent(ctx.text), '_blank', 'noopener,noreferrer') },
-    { label: 'Instagram', cls: 'share-ig', icon: IG_SVG, act: () => copyText(ctx.text + ' ' + ctx.url).then(() => showToast('Скопировано — вставь в Instagram')).catch(() => showToast('Не удалось скопировать')) },
+    { label: 'Instagram', cls: 'share-ig', icon: IG_SVG, act: () => {
+        const msg = (typeof ctx.order === 'function') ? ctx.order() : (ctx.text + ' ' + ctx.url);
+        window.open('https://instagram.com/detsky_hit/', '_blank', 'noopener,noreferrer');
+        copyText(msg).then(() => showToast('Текст скопирован, вставь в Директ')).catch(() => showToast('Не удалось скопировать'));
+      } },
     { label: 'Копировать', cls: 'share-copy', icon: COPY_SVG, act: () => copyText(ctx.text + ' ' + ctx.url).then(() => showToast('Скопировано')).catch(() => showToast('Не удалось скопировать')) },
   ];
   if (canNativeShare) items.push({ label: 'Поделиться…', cls: 'share-more', icon: MORE_SVG, act: async () => { try { await navigator.share({ title: ctx.title, text: ctx.text, url: ctx.url }); } catch (_) {} } });
