@@ -551,8 +551,32 @@ $('autofillBtn').addEventListener('click', async () => {
   if (btn.disabled) return;
   const article = String($('fArticle').value || '').trim();
   const price = String($('fPrice').value || '').trim();
-  // Передаём URL фото — воркер сам загрузит их на своей стороне, без CORS у браузера
-  const imgs = [...$('photoRow').querySelectorAll('.photo')].map(el => el.dataset.src).filter(Boolean);
+  $('autofillStatus').textContent = 'Читаю фото…'; $('autofillStatus').style.color = '#555';
+  // читаем каждое фото и превращаем в data URI — сам воркеру ходить не надо
+  let imgs = [];
+  try {
+    const photoEls = [...$('photoRow').querySelectorAll('.photo')].map(el => imgUrl(el.dataset.src)).filter(Boolean);
+    const encoded = await Promise.all(photoEls.map(src => new Promise((res, rej) => {
+      fetch(src).then(resp => {
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        return resp.blob();
+      }).then(blob => {
+        if (blob.size > 4 * 1024 * 1024) { res(src); return; }   // слишком большое — отдаём URL, воркер возьмёт сам
+        const fr = new FileReader();
+        fr.onload = () => {
+          const s = String(fr.result || '');
+          if (s.length > 6 * 1024 * 1024) res(src); else res(s);
+        };
+        fr.onerror = () => res(src);
+        fr.readAsDataURL(blob);
+      }).catch(rej);
+    })));
+    imgs = encoded;
+  } catch (e) {
+    showToast('Фото не прочитались — попробуйте загрузить заново');
+    $('autofillStatus').textContent = 'Ошибка чтения фото'; $('autofillStatus').style.color = '#c00';
+    return;
+  }
   if (!imgs.length) { showToast('Сначала загрузите хотя бы одно фото'); return; }
   if (!article || !price) { showToast('Заполни артикул и цену'); return; }
   // duplicate article check
