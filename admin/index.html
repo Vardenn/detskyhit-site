@@ -551,6 +551,7 @@ $('autofillBtn').addEventListener('click', async () => {
   if (btn.disabled) return;
   const article = String($('fArticle').value || '').trim();
   const price = String($('fPrice').value || '').trim();
+  // Передаём URL фото — воркер сам загрузит их на своей стороне, без CORS у браузера
   const imgs = [...$('photoRow').querySelectorAll('.photo')].map(el => el.dataset.src).filter(Boolean);
   if (!imgs.length) { showToast('Сначала загрузите хотя бы одно фото'); return; }
   if (!article || !price) { showToast('Заполни артикул и цену'); return; }

@@ -508,6 +508,12 @@ async function fetchInstagramStats() {
 }
 
 async function imageToDataUri(url, base) {
+  // data:URI already — trust it, just size-cap
+  if (/^data:image\//i.test(url)) {
+    const approx = Math.floor(String(url).length * 3 / 4);
+    if (approx > 4 * 1024 * 1024) throw new Error('image too big');
+    return { dataUri: url, bytes: null };
+  }
   let resolved;
   if (/^https?:\/\//i.test(url)) resolved = url;
   else if (String(url).startsWith('/')) resolved = base.origin + url;
