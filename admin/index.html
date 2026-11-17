@@ -347,6 +347,7 @@ button.small{padding:6px 12px;font-size:12px}
         <div class="row">
           <label class="ghost" style="cursor:pointer;padding:8px 14px;border:1px solid #111;border-radius:8px">+ Добавить фото<input type="file" id="addPhotoInput" accept="image/*" multiple hidden></label>
         </div>
+        <div class="row"><button class="ghost" id="autofillBtn" type="button" disabled title="Загрузи фото, заполни артикул и цену">🤖 Автозаполнение</button><span id="autofillStatus" class="hint" style="margin:0">Заполни артикул и цену + хоть одно фото — и жми</span></div>
         <div class="row"><button id="saveProductBtn">Сохранить товар</button><button class="danger" id="deleteProductBtn">Удалить</button><span id="productStatus" class="ok"></span></div>
       </div>
     </div>
@@ -461,6 +462,12 @@ function openProduct(id){
   $('fSeason').value = m0.season === undefined ? 'зима' : (m0.season || '');
   setActiveToggle(m0.active !== false);
   renderSizes(p.sizes || []); renderPhotos(p.images || []);
+  if (typeof refreshAutofillBtn === 'function') refreshAutofillBtn();
+  const isNew = /^NEW-/.test(id || '');
+  autofillTouched.title = isNew ? false : !!String(p.title || '').trim();
+  autofillTouched.description = isNew ? false : !!String(p.description || '').trim();
+  autofillTouched.season = false;
+  autofillTouched.category = false;
   $('productModal').classList.remove('hidden');
   document.body.style.overflow = 'hidden';
 }
@@ -476,6 +483,7 @@ $('sizesBox').addEventListener('click', e => { const b = e.target.closest('.size
 function renderPhotos(images){
   $('photoRow').innerHTML = (images||[]).map((src, i) => `<div class="photo ${i===0?'is-primary':''}" data-src="${esc(src)}" draggable="true">${i===0 ? '<span class="primary">Главное</span>' : ''}<img src="${esc(imgUrl(src))}" alt=""><button class="del" data-src="${esc(src)}">×</button></div>`).join('');
   if (images.length === 0){ $('photoRow').innerHTML = '<span class="hint">Фото нет. Добавьте.</span>'; }
+  if (typeof refreshAutofillBtn === 'function') refreshAutofillBtn();
 }
 $('photoRow').addEventListener('dragstart', e => { const ph = e.target.closest('.photo'); if(!ph) return; dragEl = ph; ph.style.opacity='.5'; });
 $('photoRow').addEventListener('dragover', e => { e.preventDefault(); const ph = e.target.closest('.photo'); if(!ph || ph===dragEl) return; const before = (e.clientX - ph.getBoundingClientRect().left) < ph.offsetWidth/2; ph.parentNode.insertBefore(dragEl, before ? ph : ph.nextSibling); refreshPrimaryBadge(); });
@@ -518,6 +526,75 @@ $('addPhotoInput').addEventListener('change', async e => {
     renderPhotos(p.images);
   }
   status.textContent = 'Фото загружено ✓ Нажмите «Сохранить товар»'; status.style.color = '#0a7';
+});
+
+// ---------- autofill из фото ----------
+const autofillTouched = { title:false, description:false, season:false, category:false };
+function refreshAutofillBtn(){
+  const hasImage = $('photoRow').querySelectorAll('.photo').length > 0;
+  const hasArticle = String($('fArticle').value || '').trim().length > 0;
+  const hasPrice = String($('fPrice').value || '').trim().length > 0;
+  const btn = $('autofillBtn');
+  btn.disabled = !(hasImage && hasArticle && hasPrice);
+  btn.title = btn.disabled ? 'Загрузи фото, заполни артикул и цену' : 'Заполнить пустые поля по фото';
+}
+['fTitle','fDescription','fSeason','fCategory'].forEach(id => {
+  const el = $(id); if (!el) return;
+  const key = id.substr(1).toLowerCase();
+  el.addEventListener('input', () => { autofillTouched[key] = true; });
+  el.addEventListener('change', () => { autofillTouched[key] = true; });
+});
+$('fArticle').addEventListener('input', refreshAutofillBtn);
+$('fPrice').addEventListener('input', refreshAutofillBtn);
+$('autofillBtn').addEventListener('click', async () => {
+  const btn = $('autofillBtn');
+  if (btn.disabled) return;
+  const article = String($('fArticle').value || '').trim();
+  const price = String($('fPrice').value || '').trim();
+  const imgs = [...$('photoRow').querySelectorAll('.photo')].map(el => el.dataset.src).filter(Boolean);
+  if (!imgs.length) { showToast('Сначала загрузите хотя бы одно фото'); return; }
+  if (!article || !price) { showToast('Заполни артикул и цену'); return; }
+  // duplicate article check
+  const at = article.toLowerCase();
+  const dup = PRODUCTS.find(p => p.article && String(p.article).trim().toLowerCase() === at && p.id !== currentId);
+  if (dup) {
+    const ok = await showConfirm({ title: 'Такой артикул уже есть', text: `В каталоге уже есть товар «${dup.title || dup.id}» с артикулом ${article}. Это дубль или другой товар?`, okLabel: 'Новый товар — заполнить' });
+    if (!ok) return;
+  }
+  // touched-fields confirmation
+  const touchedList = ['title','description','season','category'].filter(k => autofillTouched[k]);
+  let overwriteAll = false;
+  if (touchedList.length) {
+    const labelMap = { title: 'Название', description: 'Описание', season: 'Сезон', category: 'Категория' };
+    const labelList = touchedList.map(k => labelMap[k] || k).join(', ');
+    overwriteAll = await showConfirm({ title: 'Перезаполнить?', text: `${labelList} уже заполнены вручную. Перезаполнить их по фото?`, okLabel: 'Перезаполнить' });
+    if (!overwriteAll) return;
+  }
+  // call AI
+  btn.disabled = true;
+  const oldText = btn.textContent;
+  btn.textContent = 'Думаю… смотрю фото ⏳';
+  $('autofillStatus').textContent = 'Коплю детали с фото…'; $('autofillStatus').style.color = '#555';
+  try {
+    const r = await fetch('/api/ai/autofill', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ password: PASSWORD, images: imgs }) });
+    let d = {}; try { d = await r.json(); } catch(_) {}
+    if (!r.ok || d.error) { showToast(d.error || 'Не смог разглядеть, попробуй ещё раз'); $('autofillStatus').textContent = 'Не удалось — попробуйте ещё раз.'; $('autofillStatus').style.color = '#c00'; return; }
+    const write = (id, value) => { if (value && String(value).trim()) $(id).value = String(value).trim(); };
+    if (d.title) write('fTitle', d.title);
+    if (d.description) write('fDescription', d.description);
+    if (d.category) write('fCategory', d.category);
+    if (d.season) write('fSeason', d.season);
+    ['fTitle','fDescription','fSeason','fCategory'].forEach(id => autofillTouched[id.substr(1).toLowerCase()] = true);
+    showToast('Готово — проверь карточку и нажми «Сохранить товар»');
+    $('autofillStatus').textContent = 'Заполнено ✓ Проверь и сохрани товар.'; $('autofillStatus').style.color = '#0a7';
+  } catch (err) {
+    showToast('Не смог разглядеть, попробуй ещё раз');
+    $('autofillStatus').textContent = 'Ошибка сети — попробуйте ещё раз.'; $('autofillStatus').style.color = '#c00';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = oldText;
+    refreshAutofillBtn();
+  }
 });
 $('saveProductBtn').onclick = () => {
   const article = $('fArticle').value.trim();

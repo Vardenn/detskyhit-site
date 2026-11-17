@@ -393,6 +393,7 @@ async function handleReset(request, env) {
 }
 
 const INSTA_STATS_PATHS = new Set(['/api/insta-stats']);
+const _AUTOFILL = new Set(['/api/ai/autofill']);
 const INSTA_HANDLE = 'detsky_hit';
 const INSTA_TTL_MS = 60 * 60 * 1000; // обновляем не чаще, чем раз в час
 
@@ -506,6 +507,124 @@ async function fetchInstagramStats() {
   }
 }
 
+async function imageToDataUri(url, base) {
+  let resolved;
+  if (/^https?:\/\//i.test(url)) resolved = url;
+  else if (String(url).startsWith('/')) resolved = base.origin + url;
+  else resolved = base.origin + '/' + url;
+  const r = await fetch(resolved, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  const ct = r.headers.get('content-type') || 'image/jpeg';
+  const bytes = new Uint8Array(await r.arrayBuffer());
+  if (bytes.length > 4 * 1024 * 1024) throw new Error('image too big');
+  let str = '';
+  const CHUNK = 0x4000;
+  for (let i = 0; i < bytes.length; i += CHUNK) {
+    str += String.fromCharCode.apply(null, bytes.subarray(i, i + CHUNK));
+  }
+  return { dataUri: `data:${ct};base64,${btoa(str)}`, bytes };
+}
+
+// ---------- AI: описание товара по фото (vision per image → text LLM JSON) ----------
+async function handleAiAutofill(request, env) {
+  if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY) return json({ error: 'Сервер не настроен' }, 500);
+  if (request.method !== 'POST') return json({ error: 'Method' }, 405);
+  let body = {};
+  try { body = await request.json(); } catch { return json({ error: 'Некорректный запрос' }, 400); }
+  if (!(await checkAdminPassword(env, String(body.password || '')))) return json({ error: 'Неверный пароль' }, 401);
+  const ip = request.headers.get('cf-connecting-ip') || 'unknown';
+  if (!(await aiRateOk(env, ip))) return json({ error: 'Слишком много запросов, попробуйте через 10 минут' }, 429);
+  const images = Array.isArray(body.images) ? body.images.slice(0, 4).filter(u => typeof u === 'string' && u.trim()) : [];
+  if (!images.length) return json({ error: 'Сначала загрузите хотя бы одно фото' }, 400);
+  const base = new URL(request.url);
+  const textFromAi = r => {
+    if (!r) return '';
+    if (typeof r === 'string') return r;
+    console.log('R TYPE:', typeof r, 'R KEYS:', r && typeof r === 'object' ? JSON.stringify(Object.keys(r)) : 'n/a');
+    if (r && r.response && typeof r.response === 'object') console.log('R.RESPONSE KEYS:', JSON.stringify(Object.keys(r.response).slice(0, 10)), 'SAMPLE:', JSON.stringify(r.response).slice(0, 800));
+    const direct = r.response || r.text || r.output;
+    if (typeof direct === 'string') return direct;
+    if (direct) return String(direct);
+    const choices = r.choices;
+    if (Array.isArray(choices) && choices[0] && choices[0].message) return String(choices[0].message.content || '');
+    return String(r);
+  };
+  // 1) Vision pass per photo: collect raw visible details
+  const visionPrompt = 'Перечисли по-русски через запятую только то, что ВИДНО на этом фото товара: цвет, есть ли капюшон, какой тип застёжки (молния или пуговицы), какие карманы, длина, тёплая ли (пуховая/мембранная/трикотаж/лен/шорты), подсказки по полу. Если что-то не видно — так и скажи, не придумывай. Одно-два коротких предложения без вступлений.';
+  const descriptions = [];
+  for (const u of images) {
+    try {
+      const { dataUri } = await imageToDataUri(u, base);
+      const r = await env.AI.run('@cf/meta/llama-3.2-11b-vision-instruct', {
+        messages: [ { role: 'user', content: [
+          { type: 'image_url', image_url: { url: dataUri, detail: 'auto' } },
+          { type: 'text', text: visionPrompt },
+        ] } ],
+        max_tokens: 220, temperature: 0.3,
+      });
+      const s = textFromAi(r).trim();
+      if (s) descriptions.push(s);
+    } catch (e) {
+      console.log('vision failed for', u, e && e.message ? e.message : String(e));
+    }
+  }
+  if (!descriptions.length) return json({ error: 'Не смог разглядеть, попробуй ещё раз' }, 502);
+  // 2) Text LLM: combine descriptions → strict JSON
+  const aggregate = descriptions.map((d, i) => `Фото ${i + 1}: ${d}`).join('\n');
+  const sys = [
+    'Ты AI-помощник администратора магазина детской одежды «Detsky Hit». В базе товар — тебе дают описания по фотографиям одного и того же товара.',
+    'Верни СТРОГО JSON-объект без markdown, без пояснений:',
+    '{"title": "...", "description": "...", "category": "...", "season": "..."}',
+    '',
+    'Все фото в запросе — ОДИН и тот же товар. Верни ровно ОДИН JSON-объект на всё. Никаких других JSON-объектов, никаких комментариев вне JSON.',
+    '',
+    'Правила:',
+    '- title: короткое название КАПСОМ на английском, формат: тип товара + цвет (KURTKA GRAY, HOODIE BLACK, SWEATER BEIGE, SHIRT BLUE, PANTS GRAY и т.п.). БЕЗ артикула.',
+    '- description: 3–4 предложения на русском, простым языком для мамы. ТОЛЬКО то, что видно на фото (цвет, капюшон, молния/застёжка, карманы, длина, насколько тёплая, на какую погоду). Никаких вымышленных деталей. Если не уверена в цвете или поле — пиши «похоже ...» или «похоже на мальчиковый» без уверенности.',
+    '- category: одна из: куртки, худи, рубашки, штаны. Если товар не подходит ни под одну (например, костюм, обувь) — верни пустую строку. Возвращай именно в нижнем регистре и во множественном числе: куртки.',
+    '- season: зима | весна | лето | осень. Пустая строка если всесезонная и не очевидно.',
+  ].join('\n');
+  let final;
+  try {
+    final = await env.AI.run('@cf/meta/llama-3.3-70b-instruct-fp8-fast', {
+      messages: [ { role: 'system', content: sys }, { role: 'user', content: 'Описания по фото:\n' + aggregate } ],
+      temperature: 0.2, max_tokens: 420,
+    });
+  } catch (e) {
+    return json({ error: 'Не смог разглядеть, попробуй ещё раз' }, 502);
+  }
+  // Vision-модель может отдать готовый JSON-объект в .response — предпочитаем его
+  let parsed = null;
+  if (final && final.response && typeof final.response === 'object' && !Array.isArray(final.response) && (final.response.title !== undefined || final.response.description !== undefined)) {
+    parsed = final.response;
+  } else {
+    const finalText = textFromAi(final);
+    // находим все JSON-объекты в тексте; предпочитаем тот, в котором есть title
+    const candidates = [];
+    const src = String(finalText || '');
+    let depth = 0, start = -1;
+    for (let i = 0; i < src.length; i++) {
+      if (src[i] === '{') { if (depth === 0) start = i; depth++; }
+      else if (src[i] === '}') { depth--; if (depth === 0 && start >= 0) { candidates.push(src.slice(start, i + 1)); start = -1; } }
+    }
+    for (const c of candidates) {
+      try {
+        const p = JSON.parse(c);
+        if (p && typeof p === 'object' && (p.title || p.description)) { parsed = p; break; }
+      } catch (_) {}
+    }
+    if (!parsed) {
+      console.log('autofill final sample:', src.slice(0, 400));
+      return json({ title: '', description: String(finalText || '').trim().slice(0, 800), category: '', season: '' });
+    }
+  }
+  return json({
+    title: String(parsed.title || '').trim().slice(0, 80),
+    description: String(parsed.description || '').trim().slice(0, 800),
+    category: String(parsed.category || '').trim().toLowerCase().slice(0, 40),
+    season: String(parsed.season || '').trim().toLowerCase().slice(0, 20),
+  });
+}
 async function instaStats(env) {
   const rows = await supa(env, 'settings?select=*&key=in.(instagram_followers,instagram_following,instagram_posts,insta_fetched_at)');
   const map = {};
@@ -590,6 +709,9 @@ export default {
     }
     if (INSTA_STATS_PATHS.has(url.pathname)) {
       return json(await instaStats(env));
+    }
+    if (_AUTOFILL.has(url.pathname)) {
+      return handleAiAutofill(request, env);
     }
     if (AI_PATHS.has(url.pathname)) {
       if (url.pathname === '/api/ai/voice') return handleAiVoice(request, env);
