@@ -80,8 +80,12 @@ button.small{padding:6px 12px;font-size:12px}
 .modal-body{padding:16px}
 .two-col{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .sizes{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
-.size-chip{border:1px solid #ddd;background:#fff;border-radius:8px;padding:8px 14px;cursor:pointer;user-select:none}
+.sizes-box{display:flex;flex-direction:column;gap:6px;margin-top:4px}
+.size-chip{border:1px solid #ddd;background:#fff;border-radius:8px;padding:8px 12px;cursor:pointer;user-select:none}
 .size-chip.active{background:#111;color:#fff;border-color:#111}
+.sizes-quick{align-items:center}
+.size-quick{border:1px dashed #bbb;background:#fafafa;border-radius:8px;padding:8px 12px;cursor:pointer;color:#555;font-size:13px}
+.size-quick:hover{border-color:#111;color:#111}
 .photos{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
 .photo{position:relative;width:96px;height:124px;background:#f4f4f4;border:1px solid #ddd;border-radius:8px;overflow:hidden;display:flex;align-items:center;justify-content:center;cursor:grab}
 .photo img{max-width:100%;max-height:100%;object-fit:contain}
@@ -343,7 +347,7 @@ button.small{padding:6px 12px;font-size:12px}
           <div class="hint" style="margin-top:22px">Остаток на складе (виден в списке товаров)</div>
         </div>
         <label style="margin-top:10px">Размеры</label>
-        <div class="sizes" id="sizesBox"></div>
+        <div class="sizes-box" id="sizesBox"></div>
         <label style="margin-top:10px">Описание</label>
         <textarea id="fDescription"></textarea>
         <label style="margin-top:10px">Фото (1–10). Первое — главное. Перетаскивайте для порядка.</label>
@@ -360,7 +364,12 @@ button.small{padding:6px 12px;font-size:12px}
 
 <script src="/vendor/xlsx.full.min.js"></script>
 <script>
-const SIZES = ['140','146','152','164','170','176','180'];
+const SIZES_ROWS = [
+  ['116','120','128','130','134','140','146'],
+  ['150','152','158','160','164','170'],
+  ['180','190','XS','S','M','L','XL','2XL','3XL'],
+];
+const SIZES = SIZES_ROWS.flat();
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const $ = id => document.getElementById(id);
 const imgUrl = u => /^https?:\/\//i.test(u) ? u : '/' + u;
@@ -480,10 +489,25 @@ function closeModal(){
   document.body.style.overflow = '';
 }
 
-function renderSizes(sizes){ $('sizesBox').innerHTML = SIZES.map(s => `<button type="button" class="size-chip ${sizes.includes(s)?'active':''}" data-s="${s}">${s}</button>`).join(''); }
+function renderSizes(sizes){
+  const set = new Set(sizes || []);
+  $('sizesBox').innerHTML =
+    SIZES_ROWS.map(row => `<div class="sizes">${row.map(s => `<button type="button" class="size-chip ${set.has(s)?'active':''}" data-s="${s}">${s}</button>`).join('')}</div>`).join('')
+    + `<div class="sizes sizes-quick"><button type="button" class="size-quick" data-q="numeric">Все роста</button><button type="button" class="size-quick" data-q="alpha">Все буквенные</button><button type="button" class="size-quick" data-q="none">Снять всё</button></div>`;
+}
 function setActiveToggle(on){ const b = $('activeToggle'); b.classList.toggle('off', !on); b.textContent = on ? 'Активна' : 'Отключена'; }
 $('activeToggle').addEventListener('click', () => { setActiveToggle($('activeToggle').classList.contains('off')); });
-$('sizesBox').addEventListener('click', e => { const b = e.target.closest('.size-chip'); if(!b) return; b.classList.toggle('active'); });
+$('sizesBox').addEventListener('click', e => {
+  const chip = e.target.closest('.size-chip'); if (chip) { chip.classList.toggle('active'); return; }
+  const quick = e.target.closest('.size-quick'); if (!quick) return;
+  const q = quick.dataset.q;
+  $('sizesBox').querySelectorAll('.size-chip').forEach(b => {
+    const isNumeric = /^\d+$/.test(b.dataset.s);
+    if (q === 'none') b.classList.remove('active');
+    else if (q === 'numeric' && isNumeric) b.classList.add('active');
+    else if (q === 'alpha' && !isNumeric) b.classList.add('active');
+  });
+});
 function renderPhotos(images){
   $('photoRow').innerHTML = (images||[]).map((src, i) => `<div class="photo ${i===0?'is-primary':''}" data-src="${esc(src)}" draggable="true">${i===0 ? '<span class="primary">Главное</span>' : ''}<img src="${esc(imgUrl(src))}" alt=""><button class="del" data-src="${esc(src)}">×</button></div>`).join('');
   if (images.length === 0){ $('photoRow').innerHTML = '<span class="hint">Фото нет. Добавьте.</span>'; }
