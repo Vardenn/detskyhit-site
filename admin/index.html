@@ -508,24 +508,43 @@ $('addPhotoInput').addEventListener('change', async e => {
   const status = $('productStatus');
   for (const f of files) {
     if (p.images.length >= 10) break;
-    status.textContent = 'Загружаю «' + f.name + '»…'; status.style.color = '#555';
+    status.textContent = 'Загружаю «' + (f.name || f.type || 'фото') + '»…'; status.style.color = '#555';
     try {
-      const blob = await shrinkToBlob(f);
-      const dataUrl = await blobToDataUrl(blob);
+      let blob = null;
+      let contentType = (f.type && f.type.toLowerCase()) || 'image/jpeg';
+      // 1) Сжимаем через canvas — если умеем; иначе шлём как есть
+      try {
+        blob = await shrinkToBlob(f);
+      } catch (eCanvas) {
+        console.log('canvas-shrink failed for', f.name, eCanvas && eCanvas.message ? eCanvas.message : eCanvas, '· отправляю оригинальный файл');
+        blob = f;
+        // правда размер, если больше 4 МБ — лучше отказать
+        if (blob.size > 4 * 1024 * 1024) {
+          status.textContent = 'Фото слишком большое (' + (Math.round(blob.size / 1024 / 1024 * 10) / 10) + ' МБ). Перекодируйте в JPEG / выберите из галереи меньший.';
+          status.style.color = '#c00';
+          continue;
+        }
+      }
+      const dataUrl = blob === f ? await blobToDataUrl(f) : await blobToDataUrl(blob);
       const r = await fetch('/api/upload', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password: PASSWORD, filename: f.name, contentType: 'image/jpeg', data: dataUrl }),
+        body: JSON.stringify({ password: PASSWORD, filename: f.name || 'photo', contentType, data: dataUrl }),
       });
       const d = await r.json();
-      if (r.ok && d.ok && d.url) { p.images.push(d.url); }
-      else { status.textContent = 'Ошибка: ' + (d.error || r.status); status.style.color = '#c00'; }
+      if (r.ok && d.ok && d.url) { p.images.push(d.url); status.textContent = 'Фото загружено ✓ Нажмите «Сохранить товар»'; status.style.color = '#0a7'; }
+      else { status.textContent = 'Ошибка: ' + (d.error || r.status); status.style.color = '#c00'; console.log('upload rejected:', d); }
     } catch (err) {
-      status.textContent = 'Ошибка загрузки фото'; status.style.color = '#c00';
+      const msg = err && err.message ? err.message : String(err);
+      console.log('photo upload error:', msg, err);
+      status.textContent = 'Не вышло загрузить фото: ' + msg.slice(0, 120); status.style.color = '#c00';
     }
     renderPhotos(p.images);
+    refreshAutofillBtn();
   }
-  status.textContent = 'Фото загружено ✓ Нажмите «Сохранить товар»'; status.style.color = '#0a7';
+  if (p.images.length) {
+    status.textContent = 'Готово ✓ Нажмите «Сохранить товар»'; status.style.color = '#0a7';
+  }
 });
 
 // ---------- autofill из фото ----------
@@ -552,26 +571,61 @@ $('autofillBtn').addEventListener('click', async () => {
   const article = String($('fArticle').value || '').trim();
   const price = String($('fPrice').value || '').trim();
   $('autofillStatus').textContent = 'Читаю фото…'; $('autofillStatus').style.color = '#555';
-  // читаем каждое фото и превращаем в data URI — сам воркеру ходить не надо
+  // читаем каждое фото — сначала через canvas (любой формат, который телефон сам показал), иначе напрямую через fetch
   let imgs = [];
   try {
-    const photoEls = [...$('photoRow').querySelectorAll('.photo')].map(el => imgUrl(el.dataset.src)).filter(Boolean);
-    const encoded = await Promise.all(photoEls.map(src => new Promise((res, rej) => {
-      fetch(src).then(resp => {
-        if (!resp.ok) throw new Error('HTTP ' + resp.status);
-        return resp.blob();
-      }).then(blob => {
-        if (blob.size > 4 * 1024 * 1024) { res(src); return; }   // слишком большое — отдаём URL, воркер возьмёт сам
-        const fr = new FileReader();
-        fr.onload = () => {
-          const s = String(fr.result || '');
-          if (s.length > 6 * 1024 * 1024) res(src); else res(s);
-        };
-        fr.onerror = () => res(src);
-        fr.readAsDataURL(blob);
-      }).catch(rej);
-    })));
-    imgs = encoded;
+    const photoUrls = [...$('photoRow').querySelectorAll('.photo')].map(el => imgUrl(el.dataset.src)).filter(Boolean);
+    const totalTimer = setTimeout(() => {
+      const s = $('autofillStatus');
+      if (s.textContent === 'Читаю фото…') { s.textContent = 'Фото не ушло, попробуй ещё раз'; s.style.color = '#c00'; showToast('Фото не уходят — проверь интернет и попробуй ещё раз'); }
+    }, 30000);
+    const readOne = (src) => new Promise((res, rej) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      const done = (dataUri) => dataUri ? res(dataUri) : rej(new Error('Не вышло прочитать фото'));
+      img.onload = () => {
+        try {
+          const w = img.naturalWidth || img.width; const h = img.naturalHeight || img.height;
+          if (!w || !h) { res(null); return; }
+          const maxSize = 1024;
+          const scale = Math.min(1, maxSize / Math.max(w, h));
+          const c = document.createElement('canvas');
+          c.width = Math.max(1, Math.round(w * scale)); c.height = Math.max(1, Math.round(h * scale));
+          c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+          const uri = c.toDataURL('image/jpeg', 0.72);
+          if (uri && uri.length > 1500) res(uri); else res(null);
+        } catch (e) { rej(e); }
+      };
+      img.onerror = () => rej(new Error('image load error'));
+      img.src = src;
+    });
+    await (async () => {
+      imgs = [];
+      for (const u of photoUrls) {
+        try {
+          const dataUri = await readOne(u);
+          imgs.push(dataUri && dataUri.startsWith('data:') ? dataUri : await (async () => {
+            const resp = await fetch(u);
+            if (!resp.ok) throw new Error('HTTP ' + resp.status);
+            const blob = await resp.blob();
+            return await new Promise((res2, rej2) => { const fr = new FileReader(); fr.onload = () => res2(String(fr.result)); fr.onerror = rej2; fr.readAsDataURL(blob); });
+          })());
+        } catch (e) {
+          console.log('photo read failed, fallback to fetch:', u, e && e.message ? e.message : e);
+          try {
+            const resp = await fetch(u);
+            if (!resp.ok) throw new Error('HTTP ' + resp.status);
+            const blob = await resp.blob();
+            if (blob.size > 6 * 1024 * 1024) throw new Error('Слишком большое');
+            imgs.push(await new Promise((res2, rej2) => { const fr = new FileReader(); fr.onload = () => res2(String(fr.result)); fr.onerror = rej2; fr.readAsDataURL(blob); }));
+          } catch (e2) {
+            console.log('fetch fallback failed:', e2 && e2.message ? e2.message : e2);
+            imgs.push(u);   // передаём как есть — воркер попробует сам
+          }
+        }
+      }
+      clearTimeout(totalTimer);
+    })();
   } catch (e) {
     showToast('Фото не прочитались — попробуйте загрузить заново');
     $('autofillStatus').textContent = 'Ошибка чтения фото'; $('autofillStatus').style.color = '#c00';
@@ -652,7 +706,7 @@ $('deleteProductBtn').onclick = async () => {
 };
 $('newProductBtn').onclick = () => {
   const id = 'NEW-' + Date.now().toString(36).toUpperCase();
-  PRODUCTS.push({ id, article: '', title: 'Новая публикация', category: 'штаны', price: '', color: '', description: '', sizes: SIZES.slice(), images: [] });
+  PRODUCTS.push({ id, article: '', title: 'Новая публикация', category: 'штаны', price: '', color: '', description: '', sizes: SIZES.slice(), images: [], created_at: new Date().toISOString() });
   currentId = id; renderList(); openProduct(id);
 };
 $('closeModalBtn').onclick = closeModal;

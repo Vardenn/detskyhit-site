@@ -674,7 +674,7 @@ async function handleUpload(request, env) {
   if (String(body.password || '') !== env.DETS_ADMIN_PASSWORD) return json({ error: 'Неверный пароль' }, 401);
 
   const ct = String(body.contentType || 'image/jpeg');
-  if (!/^image\/(jpeg|jpg|png|webp)$/i.test(ct)) return json({ error: 'Только JPEG/PNG/WebP' }, 400);
+  if (!/^image\/(jpeg|jpg|png|webp|heic|heif)$/i.test(ct)) return json({ error: 'Только JPEG/PNG/WebP/HEIC' }, 400);
   const b64 = String(body.data || '').replace(/^data:[^,]+,/, '');
   if (!b64) return json({ error: 'Нет данных изображения' }, 400);
 
@@ -682,7 +682,7 @@ async function handleUpload(request, env) {
   try { bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0)); } catch { return json({ error: 'Повреждённый файл' }, 400); }
   if (bytes.length > 4 * 1024 * 1024) return json({ error: 'Фото больше 4 МБ' }, 413);
 
-  const ext = ct.includes('png') ? 'png' : ct.includes('webp') ? 'webp' : 'jpg';
+  const ext = ct.includes('png') ? 'png' : ct.includes('webp') ? 'webp' : ct.includes('heic') ? 'heic' : ct.includes('heif') ? 'heif' : 'jpg';
   const stem = String(body.filename || 'photo')
     .toLowerCase()
     .replace(/\.[a-z0-9]+$/, '')
