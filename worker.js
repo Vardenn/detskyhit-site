@@ -556,7 +556,7 @@ async function handleAiAutofill(request, env) {
     return String(r);
   };
   // 1) Vision pass per photo: collect raw visible details
-  const visionPrompt = 'Перечисли по-русски через запятую только то, что ВИДНО на этом фото товара: цвет, есть ли капюшон, какой тип застёжки (молния или пуговицы), какие карманы, длина, тёплая ли (пуховая/мембранная/трикотаж/лен/шорты), подсказки по полу. Если что-то не видно — так и скажи, не придумывай. Одно-два коротких предложения без вступлений.';
+  const visionPrompt = 'Перечисли по-русски через запятую ТОЛЬКО то, что 100% ВИДНО на этом фото товара: цвет, есть ли капюшон, какой тип застёжки (молния или пуговицы или кнопки), какие карманы, примерная длина, верхний ли это слой. НЕ придумывай невидимое: нет замка — не пиши про замок; не виден состав ткани — не пиши состав; не видна толщина — не пиши про теплоту; пол ребёнка не определяй. Если деталь не видно — пропусти её. Одно-два коротких предложения без вступлений, без слов «похоже», «возможно», «вероятно».';
   const descriptions = [];
   for (const u of images) {
     try {
@@ -585,10 +585,11 @@ async function handleAiAutofill(request, env) {
     'Все фото в запросе — ОДИН и тот же товар. Верни ровно ОДИН JSON-объект на всё. Никаких других JSON-объектов, никаких комментариев вне JSON.',
     '',
     'Правила:',
-    '- title: короткое название КАПСОМ на английском, формат: тип товара + цвет (KURTKA GRAY, HOODIE BLACK, SWEATER BEIGE, SHIRT BLUE, PANTS GRAY и т.п.). БЕЗ артикула.',
-    '- description: 3–4 предложения на русском, простым языком для мамы. ТОЛЬКО то, что видно на фото (цвет, капюшон, молния/застёжка, карманы, длина, насколько тёплая, на какую погоду). Никаких вымышленных деталей. Если не уверена в цвете или поле — пиши «похоже ...» или «похоже на мальчиковый» без уверенности.',
+    '- title: короткое название КАПСОМ на английском, формат: тип товара + цвет (KURTKA GRAY, HOODIE BLACK, SWEATER BEIGE, SHIRT BLUE, PANTS GRAY и т.п.). БЕЗ артикула. Если тип или цвет не видны — верни пустую строку, НЕ придумывай.',
+    '- description: 2–4 предложения на русском, простым языком для мамы. ИСКЛЮЧИТЕЛЬНО то, что 100% видно на фото: цвет, тип вещи, капюшон/застёжка/карманы — только если видны. ЗАПРЕЩЕНО придумывать невидимые детали. ЗАПРЕЩЕНО: пол ребёнка, состав ткани, температурный режим, сезон — если это не написано на фото. ЗАПРЕЩЕНЫ слова «похоже», «возможно», «наверное», «вероятно». Если деталь не видно — просто пропусти её, не упоминай. Лучше коротко и честно, чем придумано длинно.',
     '- category: одна из: куртки, худи, рубашки, штаны. Если товар не подходит ни под одну (например, костюм, обувь) — верни пустую строку. Возвращай именно в нижнем регистре и во множественном числе: куртки.',
     '- season: зима | весна | лето | осень. Пустая строка если всесезонная и не очевидно.',
+    '- НЕ ДОДУМЫВАЙ ничего: любое предложение, не подтверждённое фото, нужно убрать. Лучше вернуть пустые строки, чем неточные данные.',
   ].join('\n');
   let final;
   try {
@@ -704,9 +705,76 @@ async function handleUpload(request, env) {
   return json({ ok: true, url: `${env.SUPABASE_URL}/storage/v1/object/public/product-images/${key}` });
 }
 
+// ---------- OG-preview конкретного товара (/p/<id>) ----------
+// Соцсети не видят #id, поэтому отдаём HTML с OG-тегами товара, затем перекидываем в SPA (/#id).
+function escHtml(s) {
+  return String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+}
+function fmtPriceGen(p) {
+  const n = Number(String(p ?? '').replace(/\D/g, ''));
+  return isFinite(n) && n > 0 ? n.toLocaleString('ru-RU') + ' ₸' : String(p || '');
+}
+async function handleProductShare(request, env) {
+  const url = new URL(request.url);
+  const origin = url.origin;
+  let id = decodeURIComponent(url.pathname.replace(/^\/p\//, '') || '').trim();
+  id = id.replace(/[^A-Za-z0-9_\-:.]/g, '').slice(0, 64);
+  const homePage = `<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=/"><title>Detsky Hit</title></head><body><a href="/">Detsky Hit</a></body></html>`;
+  if (!id) {
+    return new Response(homePage, { status: 302, headers: { 'Location': origin + '/' } });
+  }
+  let product = null;
+  const r = await supa(env, 'products?select=*&id=eq.' + encodeURIComponent(id));
+  if (r.status === 200) {
+    try { const arr = JSON.parse(r.text); product = Array.isArray(arr) ? (arr[0] || null) : null; } catch {}
+  }
+  if (!product) {
+    return new Response(homePage, { status: 302, headers: { 'Location': origin + '/' } });
+  }
+  const title = String(product.title || product.article || id);
+  const article = String(product.article || id);
+  const price = fmtPriceGen(product.price);
+  const imgs = Array.isArray(product.images) ? product.images : [];
+  let img = imgs[0] ? String(imgs[0]) : '';
+  if (img && !/^https?:\/\//i.test(img)) img = /^\//.test(img) ? origin + img : origin + '/' + img;
+  if (!img) img = origin + '/og.jpg';
+  const desc = `${title} — ${price} · Детская одежда 11–15 лет. Караганда, ТД Таир 3, бутик 27`;
+  const spaUrl = origin + '/#' + encodeURIComponent(id);
+  const safeTitle = escHtml(title) + ' — ' + escHtml(price) + ' | Detsky Hit';
+  const html = `<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<meta http-equiv="refresh" content="0;url=/#${encodeURIComponent(id)}">
+<link rel="canonical" href="${escHtml(spaUrl)}">
+<title>${safeTitle}</title>
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Detsky Hit">
+<meta property="og:title" content="${safeTitle}">
+<meta property="og:description" content="${escHtml(desc)}">
+<meta property="og:url" content="${escHtml(origin + '/p/' + encodeURIComponent(id))}">
+<meta property="og:image" content="${escHtml(img)}">
+<meta name="twitter:card" content="summary_large_image">
+</head>
+<body>
+<p>Открываю товар: <a href="${escHtml('/#' + encodeURIComponent(id))}">${escHtml(title)} — ${escHtml(price)}</a></p>
+<script>location.replace(${JSON.stringify('/#' + encodeURIComponent(id))});</script>
+</body>
+</html>`;
+  return new Response(html, {
+    status: 200,
+    headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'public, max-age=300' },
+  });
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+    if (/^\/p\/.+/.test(url.pathname)) {
+      return handleProductShare(request, env);
+    }
     if (CATALOG_PATHS.has(url.pathname)) {
       return handleCatalog(request, env);
     }

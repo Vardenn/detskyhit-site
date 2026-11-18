@@ -74,6 +74,7 @@ button.small{padding:6px 12px;font-size:12px}
 
 .modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.55);z-index:999;display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:20px}
 .modal-overlay.hidden{display:none}
+#confirmModal,#renameModal,#catModal{z-index:1005}
 .modal-card{background:#fff;border-radius:14px;max-width:880px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.35);max-height:92vh;overflow-y:auto}
 .modal-header{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid #eee;position:sticky;top:0;background:#fff;z-index:1}
 .modal-body{padding:16px}
@@ -636,22 +637,7 @@ $('autofillBtn').addEventListener('click', async () => {
   }
   if (!imgs.length) { showToast('Сначала загрузите хотя бы одно фото'); return; }
   if (!article || !price) { showToast('Заполни артикул и цену'); return; }
-  // duplicate article check
-  const at = article.toLowerCase();
-  const dup = PRODUCTS.find(p => p.article && String(p.article).trim().toLowerCase() === at && p.id !== currentId);
-  if (dup) {
-    const ok = await showConfirm({ title: 'Такой артикул уже есть', text: `В каталоге уже есть товар «${dup.title || dup.id}» с артикулом ${article}. Это дубль или другой товар?`, okLabel: 'Новый товар — заполнить' });
-    if (!ok) return;
-  }
-  // touched-fields confirmation
-  const touchedList = ['title','description','season','category'].filter(k => autofillTouched[k]);
-  let overwriteAll = false;
-  if (touchedList.length) {
-    const labelMap = { title: 'Название', description: 'Описание', season: 'Сезон', category: 'Категория' };
-    const labelList = touchedList.map(k => labelMap[k] || k).join(', ');
-    overwriteAll = await showConfirm({ title: 'Перезаполнить?', text: `${labelList} уже заполнены вручную. Перезаполнить их по фото?`, okLabel: 'Перезаполнить' });
-    if (!overwriteAll) return;
-  }
+  // никаких вопросов: заполняем только пустые поля, заполненные руками не трогаем
   // call AI
   btn.disabled = true;
   const oldText = btn.textContent;
@@ -661,14 +647,23 @@ $('autofillBtn').addEventListener('click', async () => {
     const r = await fetch('/api/ai/autofill', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ password: PASSWORD, images: imgs }) });
     let d = {}; try { d = await r.json(); } catch(_) {}
     if (!r.ok || d.error) { showToast(d.error || 'Не смог разглядеть, попробуй ещё раз'); $('autofillStatus').textContent = 'Не удалось — попробуйте ещё раз.'; $('autofillStatus').style.color = '#c00'; return; }
-    const write = (id, value) => { if (value && String(value).trim()) $(id).value = String(value).trim(); };
+    const written = [];
+    const write = (id, value) => {
+      if (!value || !String(value).trim()) return;
+      const el = $(id);
+      if (el && !String(el.value || '').trim()) { el.value = String(value).trim(); written.push(id); }
+    };
     if (d.title) write('fTitle', d.title);
     if (d.description) write('fDescription', d.description);
     if (d.category) write('fCategory', d.category);
     if (d.season) write('fSeason', d.season);
-    ['fTitle','fDescription','fSeason','fCategory'].forEach(id => autofillTouched[id.substr(1).toLowerCase()] = true);
-    showToast('Готово — проверь карточку и нажми «Сохранить товар»');
-    $('autofillStatus').textContent = 'Заполнено ✓ Проверь и сохрани товар.'; $('autofillStatus').style.color = '#0a7';
+    if (written.length) {
+      showToast('Готово — проверь карточку и нажми «Сохранить товар»');
+      $('autofillStatus').textContent = 'Заполнено ✓ Проверь и сохрани товар.'; $('autofillStatus').style.color = '#0a7';
+    } else {
+      showToast('Все поля уже заполнены — ничего не меняю');
+      $('autofillStatus').textContent = 'Всё уже заполнено — ничего не изменилось'; $('autofillStatus').style.color = '#555';
+    }
   } catch (err) {
     showToast('Не смог разглядеть, попробуй ещё раз');
     $('autofillStatus').textContent = 'Ошибка сети — попробуйте ещё раз.'; $('autofillStatus').style.color = '#c00';

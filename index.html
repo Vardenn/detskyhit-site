@@ -93,7 +93,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 .empty{padding:60px 24px;text-align:center;color:var(--muted)}
 .empty b{display:block;font-size:18px;color:var(--text);margin-bottom:8px}
 .hint-load{padding:80px 16px;text-align:center;color:var(--muted)}
-.viewer{position:fixed;inset:0;z-index:100;background:var(--shell);overflow-y:auto;overscroll-behavior:contain;scroll-behavior:smooth}
+.viewer{position:fixed;inset:0;z-index:100;background:var(--shell);overflow-y:auto;overscroll-behavior:contain}
 .feed-end{padding:28px 16px 60px;text-align:center;color:#8a8a8a;font-size:13px;letter-spacing:.02em}
 .viewer[hidden]{display:none}
 .close{position:fixed;top:calc(10px + env(safe-area-inset-top));right:12px;z-index:120;width:36px;height:36px;border-radius:50%;background:var(--surface);border:1px solid var(--border);color:var(--text);font-size:15px;cursor:pointer}
@@ -714,13 +714,16 @@ function feedAppendMore() {
 function feedPrependMore() {
   if (feedFirst <= 0) return false;
   const postsEl = $('posts');
-  // preserve visual offset of the already-visible top post
-  const before = postsEl.querySelector('article.post');
-  const beforeTop = before ? before.getBoundingClientRect().top : 0;
+  // закрепляем СКРОЛЛ на ТОМ ЖЕ посте, который был первым до вставки
+  const anchor = postsEl.querySelector('article.post');
+  const anchorTopBefore = anchor ? anchor.getBoundingClientRect().top : 0;
   const start = Math.max(0, feedFirst - VIEW_BATCH);
-  const insertBefore = before;
-  for (let i = feedFirst - 1; i >= start; i--) postsEl.insertBefore(renderPostArticle(feedList[i]), insertBefore);
+  for (let i = feedFirst - 1; i >= start; i--) {
+    postsEl.insertBefore(renderPostArticle(feedList[i]), anchor);
+  }
   feedFirst = start;
+  const anchorTopAfter = anchor ? anchor.getBoundingClientRect().top : 0;
+  viewer.scrollTop = Math.max(0, viewer.scrollTop + (anchorTopAfter - anchorTopBefore));
   return true;
 }
 
@@ -731,15 +734,11 @@ function bindFeedScrollOnce() {
     const v = viewer;
     const distanceToBottom = v.scrollHeight - v.scrollTop - v.clientHeight;
     if (distanceToBottom < 700) feedAppendMore();
-    if (v.scrollTop < 300 && feedFirst > 0) {
-      // prepend preserving scroll position
-      const article = v.querySelector('article.post');
-      const articleTop = article ? article.getBoundingClientRect().top : 0;
+    if (v.scrollTop < 300 && feedFirst > 0 && !v.__prependBusy) {
+      // prepend preserving scroll position; compensation happens inside feedPrependMore
+      v.__prependBusy = true;
       feedPrependMore();
-      const newArticle = v.querySelector('article.post');
-      if (newArticle) {
-        v.scrollTop = v.scrollTop + (newArticle.getBoundingClientRect().top - articleTop);
-      }
+      requestAnimationFrame(() => { v.__prependBusy = false; });
     }
   }, { passive: true });
 }
@@ -828,7 +827,7 @@ const IG_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-wid
 const COPY_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 012-2h10"/></svg>';
 const MORE_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l-5 5M12 3l5 5M12 3v14"/><path d="M4 17v3a2 2 0 002 2h12a2 2 0 002-2v-3"/></svg>';
 function shareCtxForProduct(p) {
-  const url = location.origin + location.pathname + '#' + encodeURIComponent(p.id);
+  const url = location.origin + '/p/' + encodeURIComponent(p.id);
   const title = p.title || p.id;
   const order = () => {
     const article = document.querySelector(`article[data-id="${CSS.escape(String(p.id))}"]`);
