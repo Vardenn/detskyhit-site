@@ -81,8 +81,9 @@ button.small{padding:6px 12px;font-size:12px}
 .two-col{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .sizes{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
 .sizes-box{display:flex;flex-direction:column;gap:6px;margin-top:4px}
-.size-chip{border:1px solid #ddd;background:#fff;border-radius:8px;padding:8px 12px;cursor:pointer;user-select:none}
-.size-chip.active{background:#111;color:#fff;border-color:#111}
+.size-chip{border:1px solid #ececec;background:#f3f3f3;color:#b5b5b5;border-radius:8px;padding:8px 12px;cursor:pointer;user-select:none;transition:background .15s,color .15s,border-color .15s}
+.size-chip:hover{border-color:#c9c9c9;color:#8a8a8a}
+.size-chip.active{background:#111;color:#fff;border-color:#111;font-weight:700;box-shadow:0 2px 6px rgba(0,0,0,.28)}
 .sizes-quick{align-items:center}
 .size-quick{border:1px dashed #bbb;background:#fafafa;border-radius:8px;padding:8px 12px;cursor:pointer;color:#555;font-size:13px}
 .size-quick:hover{border-color:#111;color:#111}
@@ -329,6 +330,10 @@ button.small{padding:6px 12px;font-size:12px}
     <div class="modal-body">
       <div id="editorForm">
         <div class="two-col">
+          <div><label>Материал</label><input type="text" id="fMaterial" maxlength="60" placeholder="Например: Трикотажный"></div>
+          <div><label>Деталь</label><input type="text" id="fDetail" maxlength="80" placeholder="Например: с капюшоном"></div>
+        </div>
+        <div class="two-col">
           <div><label>Артикул *</label><input type="text" id="fArticle"></div>
           <div><label>Название</label><input type="text" id="fTitle"></div>
         </div>
@@ -348,6 +353,9 @@ button.small{padding:6px 12px;font-size:12px}
         </div>
         <label style="margin-top:10px">Размеры</label>
         <div class="sizes-box" id="sizesBox"></div>
+        <label style="margin-top:10px">Описание короткое <span style="color:#999;font-weight:400">· 1 строка, максимум 7 слов</span></label>
+        <input type="text" id="fShort" maxlength="90" placeholder="Например: Спортивный костюм трикотажный с капюшоном">
+        <div class="hint" id="shortCount" style="margin-top:4px">слов: 0 / 7</div>
         <label style="margin-top:10px">Описание</label>
         <textarea id="fDescription"></textarea>
         <label style="margin-top:10px">Фото (1–10). Первое — главное. Перетаскивайте для порядка.</label>
@@ -366,7 +374,7 @@ button.small{padding:6px 12px;font-size:12px}
 <script>
 const SIZES_ROWS = [
   ['116','120','128','130','134','140','146'],
-  ['150','152','158','160','164','170'],
+  ['150','152','158','160','164','170','176'],
   ['180','190','XS','S','M','L','XL','2XL','3XL'],
 ];
 const SIZES = SIZES_ROWS.flat();
@@ -470,11 +478,14 @@ function openProduct(id){
   $('modalTitle').textContent = (p.title || p.id) + ' (арт. ' + p.article + ')';
   $('fArticle').value = p.article || ''; $('fTitle').value = p.title || ''; $('fPrice').value = p.price || '';
   $('fCategory').value = p.category || 'штаны'; $('fDescription').value = p.description || '';
-  $('fQty').value = (productMeta()[p.id] || {}).quantity ?? '';
+  const _m0 = (productMeta()[p.id] || {});
+  $('fShort').value = _m0.short || ''; $('fMaterial').value = _m0.material || ''; $('fDetail').value = _m0.detail || '';
+  $('fQty').value = _m0.quantity ?? '';
   const m0 = (productMeta()[id]) || {};
   $('fSeason').value = m0.season === undefined ? 'зима' : (m0.season || '');
   setActiveToggle(m0.active !== false);
   renderSizes(p.sizes || []); renderPhotos(p.images || []);
+  updateShortCount();
   if (typeof refreshAutofillBtn === 'function') refreshAutofillBtn();
   const isNew = /^NEW-/.test(id || '');
   autofillTouched.title = isNew ? false : !!String(p.title || '').trim();
@@ -576,7 +587,22 @@ $('addPhotoInput').addEventListener('change', async e => {
 });
 
 // ---------- autofill из фото ----------
+const countWords = s => String(s || '').trim().split(/\s+/).filter(Boolean).length;
+function updateShortCount(){
+  const el = $('shortCount'); if (!el) return;
+  const n = countWords($('fShort').value);
+  el.textContent = 'слов: ' + n + ' / 7';
+  el.style.color = n > 7 ? '#c00' : (n ? '#0a7' : '#777');
+}
+$('fShort').addEventListener('input', updateShortCount);
 const autofillTouched = { title:false, description:false, season:false, category:false };
+const categoryOptionText = () => {
+  const sel = $('fCategory');
+  if (!sel) return '';
+  const o = sel.selectedOptions && sel.selectedOptions[0];
+  return (o ? o.textContent : (sel.value || '')).trim();
+};
+const shortFromFields = () => [categoryOptionText(), $('fMaterial').value.trim().toLowerCase(), $('fDetail').value.trim().toLowerCase()].filter(Boolean).join(' ').trim();
 function refreshAutofillBtn(){
   const hasImage = $('photoRow').querySelectorAll('.photo').length > 0;
   const hasArticle = String($('fArticle').value || '').trim().length > 0;
@@ -598,6 +624,12 @@ $('autofillBtn').addEventListener('click', async () => {
   if (btn.disabled) return;
   const article = String($('fArticle').value || '').trim();
   const price = String($('fPrice').value || '').trim();
+  // сначала формула для «Описание короткое» (локально, без нейросети): Описание = Категория + Материал + Деталь. Если поле заполнено вручную — берём рукописное.
+  const written = [];
+  if (!String($('fShort').value || '').trim()) {
+    const s = shortFromFields();
+    if (s) { $('fShort').value = s; written.push('fShort'); updateShortCount(); }
+  }
   $('autofillStatus').textContent = 'Читаю фото…'; $('autofillStatus').style.color = '#555';
   // читаем каждое фото — сначала через canvas (любой формат, который телефон сам показал), иначе напрямую через fetch
   let imgs = [];
@@ -671,7 +703,6 @@ $('autofillBtn').addEventListener('click', async () => {
     const r = await fetch('/api/ai/autofill', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ password: PASSWORD, images: imgs }) });
     let d = {}; try { d = await r.json(); } catch(_) {}
     if (!r.ok || d.error) { showToast(d.error || 'Не смог разглядеть, попробуй ещё раз'); $('autofillStatus').textContent = 'Не удалось — попробуйте ещё раз.'; $('autofillStatus').style.color = '#c00'; return; }
-    const written = [];
     const write = (id, value) => {
       if (!value || !String(value).trim()) return;
       const el = $(id);
@@ -706,8 +737,15 @@ $('saveProductBtn').onclick = () => {
   p.sizes = [...$('sizesBox').querySelectorAll('.size-chip.active')].map(b => b.dataset.s);
   p.images = [...$('photoRow').querySelectorAll('.photo')].map(x => x.dataset.src);
   const qtyInput = $('fQty'); const qty = qtyInput.value === '' ? undefined : Math.max(0, Number(qtyInput.value) || 0);
+  const shortVal = $('fShort').value.trim();
+  const matVal = $('fMaterial').value.trim();
+  const detVal = $('fDetail').value.trim();
   const meta = productMeta();
-  meta[p.id] = { ...(meta[p.id] || {}), season: $('fSeason').value, active: !$('activeToggle').classList.contains('off'), ...(qty !== undefined ? { quantity: qty } : {}) };
+  const mEntry = { ...(meta[p.id] || {}), season: $('fSeason').value, active: !$('activeToggle').classList.contains('off'), ...(qty !== undefined ? { quantity: qty } : {}) };
+  if (shortVal) mEntry.short = shortVal; else delete mEntry.short;
+  if (matVal) mEntry.material = matVal; else delete mEntry.material;
+  if (detVal) mEntry.detail = detVal; else delete mEntry.detail;
+  meta[p.id] = mEntry;
   SETTINGS.product_meta = JSON.stringify(meta);
   $('productStatus').textContent = 'Сохраняю…'; $('productStatus').style.color='#555';
   const status = $('productStatus');
@@ -998,6 +1036,9 @@ const CX_COLS = [
   { key:'quantity', label:'Кол-во', aliases:['количество','кол-во','колво','qty','count','остаток'] },
   { key:'images', label:'Фото', aliases:['фото','images','image','photo','файл'] },
   { key:'description', label:'Описание', aliases:['описание','description','desc'] },
+  { key:'short', label:'Описание короткое', aliases:['описание короткое','короткое описание','краткое описание','short','short description','краткая'] },
+  { key:'material', label:'Материал', aliases:['материал','material','ткань','состав'] },
+  { key:'detail', label:'Деталь', aliases:['деталь','detail','детали','фишка','изюминка'] },
   { key:'active', label:'Активна', aliases:['активна','активен','active','on'] },
 ];
 let CX = { rows: [], raw: [], files: new Map() };
@@ -1078,10 +1119,18 @@ function cxValidate(rawRows) {
       sizes: [],
       quantity: 0,
       description: cxNorm(o.description).slice(0, 500),
+      material: cxNorm(o.material).slice(0, 60),
+      detail: cxNorm(o.detail).slice(0, 60),
+      short: cxNorm(o.short).slice(0, 90),
       images: cxNorm(o.images),
       errors: [],
       warnings: [],
     };
+    // формула: если «Описание короткое» пусто — собираем из Категория + Материал + Деталь (если вписано руками — берём рукописное)
+    if (!r.short) {
+      const catRaw = cxNorm(o.category);
+      r.short = [catRaw, r.material.toLowerCase(), r.detail.toLowerCase()].filter(Boolean).join(' ');
+    }
     if (!r.article) r.errors.push('нет артикула');
     else if (!/^[A-Za-zА-Яа-я0-9\-_]{2,40}$/.test(r.article)) r.errors.push('артикул: только буквы, цифры, «-» и «_»');
     else if (seen.has(r.article.toLowerCase())) r.errors.push('повтор артикула');
@@ -1138,7 +1187,7 @@ function cxRenderCheck() {
 }
 $('centerTemplateBtn').addEventListener('click', () => {
   const header = CX_COLS.map(c => c.label);
-  const example = ['19840','Куртка зимняя','куртки','Зима','38900','150,160,170','5','19840.jpg','Зимняя куртка с натуральным мехом','да'];
+  const example = ['19840','Куртка зимняя','куртки','Зима','38900','150,160,170','5','19840.jpg','Зимняя куртка с натуральным мехом','Куртка зимняя на меху','Мембрана','с капюшоном','да'];
   const ws = XLSX.utils.aoa_to_sheet([header, example]);
   ws['!cols'] = header.map(() => ({ wch: 20 }));
   const wb = XLSX.utils.book_new();
@@ -1207,7 +1256,7 @@ $('centerPublishBtn').addEventListener('click', async () => {
       productsOut.push({ id: pid, article: r.article, ...field, color: '', images: uploaded, created_at: new Date().toISOString() });
     }
     const meta = productMeta();
-    meta[pid] = { ...(meta[pid] || {}), season: r.season, active: r.active, quantity: r.quantity };
+    meta[pid] = { ...(meta[pid] || {}), season: r.season, active: r.active, quantity: r.quantity, ...(r.short ? { short: r.short } : {}), ...(r.material ? { material: r.material } : {}), ...(r.detail ? { detail: r.detail } : {}) };
     SETTINGS.product_meta = JSON.stringify(meta);
     if (!CX_BUILTIN_CATS.some(([k]) => k === r.category)) newCats.add(r.category);
     r.pid = pid;

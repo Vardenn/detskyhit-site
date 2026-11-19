@@ -88,6 +88,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;background:var(--shell)}
 .tile{position:relative;aspect-ratio:4/5;background:var(--tile-bg);border:0;padding:0;cursor:pointer;overflow:hidden}
 .tile img{width:100%;height:100%;object-fit:contain;display:block}
+.tile-cap{position:absolute;left:0;right:0;bottom:0;padding:24px 88px 6px 8px;background:linear-gradient(180deg,rgba(0,0,0,0),rgba(0,0,0,.62));color:#fff;font-size:11px;line-height:1.28;font-weight:600;text-align:left;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .mocktag{position:absolute;right:6px;bottom:6px;padding:3px 9px;font-size:11.5px;font-weight:700;color:#fff;background:rgba(0,0,0,.62);border-radius:999px}
 .fav-btn-tile{position:absolute;top:6px;right:6px;z-index:2;background:transparent;border:0;width:30px;height:30px;font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center}
 .empty{padding:60px 24px;text-align:center;color:var(--muted)}
@@ -130,7 +131,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 .ph-act:active{transform:scale(.92)}
 .ph-spacing{flex:1}
 .ph-info{padding:14px 16px 18px;background:var(--shell)}
-.ph-title{font-weight:800;font-size:16px;letter-spacing:-.01em;overflow-wrap:anywhere}
+.ph-title{font-weight:800;font-size:16px;letter-spacing:-.01em;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .ph-price{font-weight:800;font-size:24px;letter-spacing:-.01em;margin-top:6px;color:var(--text)}
 .ph-article{font-size:12px;color:var(--muted);margin-top:4px}
 .ph-sizes{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 4px}
@@ -305,6 +306,7 @@ function parseJSON(s, fb) { try { const v = JSON.parse(s); return v === null || 
 function seasonsEnabled() { return parseJSON(SETTINGS.seasons_enabled, SEASON_KEYS.slice()); }
 function circleOrder() { const defs = hlDefs(); const known = new Set(defs.map(d => d.key)); const saved = parseJSON(SETTINGS.hl_order, defs.map(d => d.key)); const filtered = saved.filter(k => known.has(k)); const missing = defs.map(d => d.key).filter(k => !filtered.includes(k)); return filtered.concat(missing); }
 function productMeta() { return parseJSON(SETTINGS.product_meta, {}); }
+function pName(p) { const m = productMeta()[p.id] || {}; const s = m.short && String(m.short).trim(); return s || p.title || ('арт. ' + (p.article || p.id)); }
 function visibleProducts() {
   const enabled = new Set(seasonsEnabled());
   const meta = productMeta();
@@ -360,7 +362,7 @@ function renderTop() {
     c.width = W; c.height = H;
     const ctx = c.getContext('2d');
     const price = fmtPrice(p.price);
-    const title = String(p.title || p.article || p.id).trim();
+    const title = String(pName(p)).trim();
     const sizes = (p.sizes || []).filter(Boolean).join(' · ');
 
     // background: warm paper-white
@@ -540,9 +542,10 @@ function renderGrid() {
   if (!list.length) { gridEl.innerHTML = '<div class="empty"><b>Пока пусто</b>Скоро добавим товары</div>'; return; }
   gridEl.innerHTML = list.map(p => `
     <div class="tile" data-id="${esc(p.id)}">
-      <img src="${esc(thumbOf(p.images?.[0] || ''))}" loading="lazy" decoding="async" alt="${esc(p.title || p.article)}">
+      <img src="${esc(thumbOf(p.images?.[0] || ''))}" loading="lazy" decoding="async" alt="${esc(pName(p))}">
       <button class="fav-btn-tile" data-id="${esc(p.id)}" aria-label="В избранное">${favs.includes(p.id) ? HEART_RED : HEART_WHITE}</button>
       <span class="mocktag">${fmtPrice(p.price)}</span>
+      <span class="tile-cap">${esc(pName(p))}</span>
     </div>`).join('');
 }
 gridEl.addEventListener('click', e => {
@@ -574,7 +577,7 @@ function renderPostArticle(p) {
   const isFav = favs.includes(p.id);
   const imgs = (p.images || []);
   const hasMany = imgs.length > 1;
-  const slides = imgs.map(img => `<div class="slide"><img loading="lazy" decoding="async" src="${esc(img)}" alt="${esc(p.title || p.article)}"></div>`).join('');
+  const slides = imgs.map(img => `<div class="slide"><img loading="lazy" decoding="async" src="${esc(img)}" alt="${esc(pName(p))}"></div>`).join('');
   const dots = hasMany ? imgs.map((_, i) => `<span class="dot${i === 0 ? ' on' : ''}"></span>`).join('') : '';
   const sizes = (p.sizes || []).map(s => `<button class="ph-size" data-s="${esc(s)}">${esc(s)}</button>`).join('');
   const price = fmtPrice(p.price);
@@ -611,7 +614,7 @@ function renderPostArticle(p) {
       <img class="ka-red" src="kaspi-pill.png" alt="Kaspi RED" width="46" height="15">
     </div>
     <div class="ph-info">
-      <div class="ph-title">${esc(p.title || ('арт. ' + p.article))}</div>
+      <div class="ph-title">${esc(pName(p))}</div>
       <div class="ph-price">${price}</div>
       <div class="ph-article">арт. ${esc(p.article)}</div>
       ${sizes ? `<div class="ph-sizes-row"><span class="ph-sizes-label">Размеры:</span><div class="ph-sizes">${sizes}</div></div>` : ''}
@@ -756,7 +759,7 @@ $('showFavBtn').addEventListener('click', () => {
   const ids = getFavs();
   const favs = ids.map(id => PRODUCTS.find(p => p.id === id)).filter(Boolean);
   $('favList').innerHTML = favs.length
-    ? favs.map(p => `<div class="fav-item" data-card-id="${esc(p.id)}"><label class="pick"><input type="checkbox" class="pick-input" data-id="${esc(p.id)}"><span class="pick-dot"></span></label><img src="${esc((p.images?.[0]||'').startsWith('http') ? p.images[0] : '/' + (p.images?.[0]||''))}" alt="${esc(p.title||p.article)}"><div><b>${esc(p.title||p.article)}</b><div class="price">${fmtPrice(p.price)} · арт. ${esc(p.article)}</div><button class="fav-remove" data-id="${esc(p.id)}">Убрать</button></div></div>`).join('')
+    ? favs.map(p => `<div class="fav-item" data-card-id="${esc(p.id)}"><label class="pick"><input type="checkbox" class="pick-input" data-id="${esc(p.id)}"><span class="pick-dot"></span></label><img src="${esc((p.images?.[0]||'').startsWith('http') ? p.images[0] : '/' + (p.images?.[0]||''))}" alt="${esc(pName(p))}"><div><b>${esc(pName(p))}</b><div class="price">${fmtPrice(p.price)} · арт. ${esc(p.article)}</div><button class="fav-remove" data-id="${esc(p.id)}">Убрать</button></div></div>`).join('')
     : '<p style="color:#888">Вы ещё ничего не добавили в избранное.</p>';
   $('favoritesSection').hidden = false;
   document.querySelector('.shell').hidden = true;
@@ -779,7 +782,7 @@ async function shareFavorites() {
   const ids = [...$('favList').querySelectorAll('.pick-input:checked')].slice(0, 5).map(i => i.dataset.id);
   if (!ids.length) { showToast('Отметьте точки — какие карточки отправить'); return; }
   const favs = ids.map(id => PRODUCTS.find(p => p.id === id)).filter(Boolean);
-  const line = p => `${p.title || p.id} — ${fmtPrice(p.price)} ₸`;
+  const line = p => `${pName(p)} — ${fmtPrice(p.price)} ₸`;
   const text = favs.length === 1
     ? `Detsky Hit — ${line(favs[0])}`
     : 'Detsky Hit — мой список:\n' + favs.map((p, i) => (i + 1) + '. ' + line(p)).join('\n');
@@ -828,7 +831,7 @@ const COPY_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-w
 const MORE_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l-5 5M12 3l5 5M12 3v14"/><path d="M4 17v3a2 2 0 002 2h12a2 2 0 002-2v-3"/></svg>';
 function shareCtxForProduct(p) {
   const url = location.origin + '/p/' + encodeURIComponent(p.id);
-  const title = p.title || p.id;
+  const title = pName(p);
   const order = () => {
     const article = document.querySelector(`article[data-id="${CSS.escape(String(p.id))}"]`);
     const sizeSel = article?.querySelector('.ph-size.on')?.dataset?.s || '';
