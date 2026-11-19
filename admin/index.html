@@ -88,8 +88,16 @@ button.small{padding:6px 12px;font-size:12px}
 .size-quick{border:1px dashed #bbb;background:#fafafa;border-radius:8px;padding:8px 12px;cursor:pointer;color:#555;font-size:13px}
 .size-quick:hover{border-color:#111;color:#111}
 .photos{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
-.photo{position:relative;width:96px;height:124px;background:#f4f4f4;border:1px solid #ddd;border-radius:8px;overflow:hidden;display:flex;align-items:center;justify-content:center;cursor:grab}
-.photo img{max-width:100%;max-height:100%;object-fit:contain}
+.photo{position:relative;width:96px;height:124px;background:#f4f4f4;border:1px solid #ddd;border-radius:8px;overflow:hidden;display:flex;align-items:center;justify-content:center;cursor:grab;touch-action:pan-y;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;transition:transform .12s}
+.photo img{max-width:100%;max-height:100%;object-fit:contain;-webkit-user-drag:none;pointer-events:none;user-select:none}
+.photo.is-selected{border-color:#111;box-shadow:0 0 0 3px #111,0 6px 18px rgba(0,0,0,.18);animation:photoWiggle .38s ease-in-out infinite}
+.photo.is-dragging{transform:scale(1.08);box-shadow:0 18px 46px rgba(0,0,0,.4);z-index:5;cursor:grabbing;animation:none;border-color:#111}
+.photo.is-dragging .ph-nav,.photo.is-dragging .del{display:none}
+@keyframes photoWiggle{0%,100%{transform:rotate(-1.8deg)}25%{transform:rotate(1.5deg)}50%{transform:rotate(-1.3deg)}75%{transform:rotate(1.7deg)}}
+.ph-nav{display:none;position:absolute;top:50%;transform:translateY(-50%);width:24px;height:38px;border:0;border-radius:8px;background:rgba(0,0,0,.55);color:#fff;font-size:20px;line-height:1;cursor:pointer;align-items:center;justify-content:center;z-index:3}
+.ph-prev{left:3px}
+.ph-next{right:3px}
+.photo.is-selected .ph-nav{display:flex}
 .photo .primary{position:absolute;top:4px;left:4px;background:#111;color:#fff;font-size:10px;padding:2px 6px;border-radius:999px}
 .photo .del{position:absolute;bottom:4px;right:4px;background:rgba(0,0,0,.6);color:#fff;border:0;border-radius:6px;font-size:11px;padding:2px 6px;cursor:pointer}
 .hint{font-size:12px;color:#888;margin-top:6px}
@@ -329,9 +337,10 @@ button.small{padding:6px 12px;font-size:12px}
     <div class="modal-body">
       <div id="editorForm">
         <div class="two-col">
-          <div><label>Материал</label><input type="text" id="fMaterial" maxlength="60" placeholder="Например: Трикотажный"></div>
-          <div><label>Деталь</label><input type="text" id="fDetail" maxlength="80" placeholder="Например: с капюшоном"></div>
+          <div><label>Материал <span style="color:#999;font-weight:400">· ключ</span></label><input type="text" id="fMaterial" maxlength="60" placeholder="Трикотаж"></div>
+          <div><label>Цвет <span style="color:#999;font-weight:400">· как есть</span></label><input type="text" id="fColor" maxlength="60" placeholder="Светло-серый меланж"></div>
         </div>
+        <div><label>Деталь <span style="color:#999;font-weight:400">· ключи через запятую</span></label><input type="text" id="fDetail" maxlength="120" placeholder="Лампасы, капюшон"></div>
         <div class="two-col">
           <div><label>Артикул *</label><input type="text" id="fArticle"></div>
           <div><label>Название</label><input type="text" id="fTitle"></div>
@@ -357,7 +366,7 @@ button.small{padding:6px 12px;font-size:12px}
         <div class="hint" id="shortCount" style="margin-top:4px">слов: 0 / 7</div>
         <label style="margin-top:10px">Описание</label>
         <textarea id="fDescription"></textarea>
-        <label style="margin-top:10px">Фото (1–10). Первое — главное. Перетаскивайте для порядка.</label>
+        <label style="margin-top:10px">Фото (1–10). Первое — главное. На телефоне зажми фото и тяни влево-вправо; на компьютере перетаскивай, выдели тапом и двигай стрелками:</label>
         <div class="photos" id="photoRow"></div>
         <div class="row">
           <label class="ghost" style="cursor:pointer;padding:8px 14px;border:1px solid #111;border-radius:8px">+ Добавить фото<input type="file" id="addPhotoInput" accept="image/*" multiple hidden></label>
@@ -384,7 +393,7 @@ let PASSWORD = null;
 let PRODUCTS = [];
 let SETTINGS = {};
 let currentId = null;
-let dragEl = null;
+
 const SEASON_KEYS = ['зима','осень','весна','лето','осень-весна'];
 const SEASON_EMOJI = { 'зима':'❄', 'осень':'🍂', 'весна':'🌸', 'лето':'☀', 'осень-весна':'🍂🌸', '':'🔁' };
 const parseJSON = (s, fb) => { try { const v = JSON.parse(s); return v === null || v === undefined ? fb : v; } catch { return fb; } };
@@ -478,7 +487,7 @@ function openProduct(id){
   $('fArticle').value = p.article || ''; $('fTitle').value = p.title || ''; $('fPrice').value = p.price || '';
   $('fCategory').value = p.category || 'штаны'; $('fDescription').value = p.description || '';
   const _m0 = (productMeta()[p.id] || {});
-  $('fShort').value = _m0.short || ''; $('fMaterial').value = _m0.material || ''; $('fDetail').value = _m0.detail || '';
+  $('fShort').value = _m0.short || ''; $('fMaterial').value = _m0.material || ''; $('fColor').value = _m0.color || ''; $('fDetail').value = _m0.detail || '';
   $('fQty').value = _m0.quantity ?? '';
   const m0 = (productMeta()[id]) || {};
   $('fSeason').value = m0.season === undefined ? 'зима' : (m0.season || '');
@@ -519,13 +528,83 @@ $('sizesBox').addEventListener('click', e => {
   });
 });
 function renderPhotos(images){
-  $('photoRow').innerHTML = (images||[]).map((src, i) => `<div class="photo ${i===0?'is-primary':''}" data-src="${esc(src)}" draggable="true">${i===0 ? '<span class="primary">Главное</span>' : ''}<img src="${esc(imgUrl(src))}" alt=""><button class="del" data-src="${esc(src)}">×</button></div>`).join('');
+  $('photoRow').innerHTML = (images||[]).map((src, i) => `<div class="photo ${i===0?'is-primary':''}" data-src="${esc(src)}">${i===0 ? '<span class="primary">Главное</span>' : ''}<img src="${esc(imgUrl(src))}" alt="" draggable="false"><button class="del" data-src="${esc(src)}">×</button><button class="ph-nav ph-prev" data-dir="-1" type="button" aria-label="Переместить влево">‹</button><button class="ph-nav ph-next" data-dir="1" type="button" aria-label="Переместить вправо">›</button></div>`).join('');
   if (images.length === 0){ $('photoRow').innerHTML = '<span class="hint">Фото нет. Добавьте.</span>'; }
   if (typeof refreshAutofillBtn === 'function') refreshAutofillBtn();
 }
-$('photoRow').addEventListener('dragstart', e => { const ph = e.target.closest('.photo'); if(!ph) return; dragEl = ph; ph.style.opacity='.5'; });
-$('photoRow').addEventListener('dragover', e => { e.preventDefault(); const ph = e.target.closest('.photo'); if(!ph || ph===dragEl) return; const before = (e.clientX - ph.getBoundingClientRect().left) < ph.offsetWidth/2; ph.parentNode.insertBefore(dragEl, before ? ph : ph.nextSibling); refreshPrimaryBadge(); });
-$('photoRow').addEventListener('dragend', () => { if(dragEl) dragEl.style.opacity='1'; dragEl=null; refreshPrimaryBadge(); });
+let photoDrag = null;
+const LONG_PRESS_MS = 550;
+const MOVE_TOLERANCE = 9;
+const photoPhotos = () => [...$('photoRow').querySelectorAll('.photo')];
+$('photoRow').addEventListener('dragstart', e => e.preventDefault());
+$('photoRow').addEventListener('contextmenu', e => { if (e.target.closest('.photo')) e.preventDefault(); });
+$('photoRow').addEventListener('pointerdown', e => {
+  if (e.target.closest('.del, .ph-nav')) return;
+  const ph = e.target.closest('.photo'); if (!ph) return;
+  photoDrag = { el: ph, pointerId: e.pointerId, startX: e.clientX, startY: e.clientY, mode: 'pending', longTimer: setTimeout(() => startPhotoDrag(ph), LONG_PRESS_MS) };
+  try { ph.setPointerCapture(e.pointerId); } catch (_) {}
+});
+$('photoRow').addEventListener('pointermove', e => {
+  if (!photoDrag) return;
+  const dx = e.clientX - photoDrag.startX, dy = e.clientY - photoDrag.startY;
+  if (photoDrag.mode === 'pending') {
+    if (Math.hypot(dx, dy) <= MOVE_TOLERANCE) return;
+    clearTimeout(photoDrag.longTimer);
+    if (e.pointerType === 'touch' && Math.abs(dy) > Math.abs(dx)) { photoDrag = null; return; }
+    startPhotoDrag(photoDrag.el);   // и проваливаемся ниже — тянем сразу в этом событии
+  }
+  if (photoDrag.mode === 'drag') {
+    // горизонтальный сдвиг — меняем местами соседа с перетащимым (цикл — за несколько слотов за событие)
+    const el = photoDrag.el;
+    for (;;) {
+      const list = photoPhotos();
+      const i = list.indexOf(el);
+      let moved = false;
+      for (const sib of list) {
+        if (sib === el) continue;
+        const r = sib.getBoundingClientRect();
+        const mid = r.left + r.width / 2;
+        const j = list.indexOf(sib);
+        if (j > i && e.clientX > mid) { sib.parentNode.insertBefore(el, sib.nextSibling); moved = true; break; }   // тянем вправо — ставим ПОСЛЕ соседа
+        if (j < i && e.clientX < mid) { sib.parentNode.insertBefore(el, sib); moved = true; break; }              // тянем влево — ставим ПЕРЕД соседом
+      }
+      if (!moved) break;
+      refreshPrimaryBadge();
+    }
+  }
+});
+const endPhotoPointer = () => {
+  if (!photoDrag) return;
+  clearTimeout(photoDrag.longTimer);
+  if (photoDrag.mode === 'pending') togglePhotoSelect(photoDrag.el);
+  else if (photoDrag.mode === 'drag') photoDrag.el.classList.remove('is-dragging');
+  photoDrag = null;
+};
+$('photoRow').addEventListener('pointerup', endPhotoPointer);
+$('photoRow').addEventListener('pointercancel', endPhotoPointer);
+$('photoRow').addEventListener('lostpointercapture', endPhotoPointer);
+function startPhotoDrag(el){
+  if (!photoDrag) return;
+  photoDrag.mode = 'drag';
+  clearTimeout(photoDrag.longTimer);
+  el.classList.add('is-dragging');
+  el.classList.remove('is-selected');
+  showToast('Тяни фото влево-вправо, отпусти чтобы встать на место');
+}
+function togglePhotoSelect(el){
+  photoPhotos().forEach(x => { if (x !== el) x.classList.remove('is-selected'); });
+  el.classList.toggle('is-selected');
+  const on = el.classList.contains('is-selected');
+  showToast(on ? 'Фото выбрано — жми ‹ или ›, либо зажми и тяни' : 'Фото отпущено');
+}
+function movePhoto(el, dir){
+  const list = photoPhotos();
+  const i = list.indexOf(el); const j = i + dir;
+  if (j < 0 || j >= list.length) return;
+  const ref = dir > 0 ? list[j].nextSibling : list[j];
+  el.parentNode.insertBefore(el, ref);
+  refreshPrimaryBadge();
+}
 function refreshPrimaryBadge(){
   [...$('photoRow').querySelectorAll('.photo')].forEach((el,i) => {
     let badge = el.querySelector('.primary');
@@ -534,6 +613,8 @@ function refreshPrimaryBadge(){
   });
 }
 $('photoRow').addEventListener('click', e => {
+  const nav = e.target.closest('.ph-nav');
+  if (nav) { const ph = nav.closest('.photo'); if (ph) movePhoto(ph, Number(nav.dataset.dir)); return; }
   const del = e.target.closest('.del'); if(!del) return;
   const src = del.dataset.src;
   const p = PRODUCTS.find(x => x.id === currentId); if(!p) return;
@@ -601,7 +682,7 @@ const categoryOptionText = () => {
   const o = sel.selectedOptions && sel.selectedOptions[0];
   return (o ? o.textContent : (sel.value || '')).trim();
 };
-const shortFromFields = () => [categoryOptionText(), $('fMaterial').value.trim().toLowerCase(), $('fDetail').value.trim().toLowerCase()].filter(Boolean).join(' ').trim();
+const shortFromFields = () => shortDescriptionBuild({ title: $('fTitle').value, material: $('fMaterial').value, color: $('fColor').value, detail: $('fDetail').value });
 function refreshAutofillBtn(){
   const hasImage = $('photoRow').querySelectorAll('.photo').length > 0;
   const hasArticle = String($('fArticle').value || '').trim().length > 0;
@@ -738,11 +819,13 @@ $('saveProductBtn').onclick = () => {
   const qtyInput = $('fQty'); const qty = qtyInput.value === '' ? undefined : Math.max(0, Number(qtyInput.value) || 0);
   const shortVal = $('fShort').value.trim();
   const matVal = $('fMaterial').value.trim();
+  const colVal = $('fColor').value.trim();
   const detVal = $('fDetail').value.trim();
   const meta = productMeta();
   const mEntry = { ...(meta[p.id] || {}), season: $('fSeason').value, active: !$('activeToggle').classList.contains('off'), ...(qty !== undefined ? { quantity: qty } : {}) };
   if (shortVal) mEntry.short = shortVal; else delete mEntry.short;
   if (matVal) mEntry.material = matVal; else delete mEntry.material;
+  if (colVal) mEntry.color = colVal; else delete mEntry.color;
   if (detVal) mEntry.detail = detVal; else delete mEntry.detail;
   meta[p.id] = mEntry;
   SETTINGS.product_meta = JSON.stringify(meta);
@@ -1023,6 +1106,26 @@ $('doneResetBtn').addEventListener('click', () => {
 });
 
 // ---------- «Центр»: загрузка пачкой через Excel ----------
+const CX_SHORT_MAT = { 'трикотаж':'трикотажный', 'костюмная':'костюмная ткань', 'костюмная ткань':'костюмная ткань', 'плащёвка':'из плащёвки', 'плащевина':'из плащёвки', 'плащ':'из плащёвки', 'хлопок':'хлопковый', 'флис':'флисовый' };
+const CX_SHORT_DET = { 'лампасы':'с лампасами', 'замок':'с замком', 'капюшон':'с капюшоном', 'карман-кенгуру':'с карманом-кенгуру', 'кенгуру':'с карманом-кенгуру', 'резинка':'на резинке', 'полузамок':'с полузамком' };
+const capFirst = s => { const t = String(s || '').trim(); return t ? t.charAt(0).toUpperCase() + t.slice(1) : ''; };
+const normKey = s => String(s || '').trim().toLowerCase().replace(/ё/g, 'е').replace(/\s+/g, ' ');
+const shortDescriptionBuild = ({ title, material, color, detail }) => {
+  const parts = [];
+  const t = String(title || '').trim();
+  if (t) parts.push(capFirst(t));
+  const m = normKey(material);
+  if (m) parts.push(CX_SHORT_MAT[m] || m);
+  const c = String(color || '').trim();
+  if (c) parts.push(c);                       // цвет — как есть, не меняем
+  const d = String(detail || '').trim();
+  if (d) {
+    const items = d.split(/[,;]+/).map(x => normKey(x)).filter(Boolean);
+    const mapped = items.map(x => CX_SHORT_DET[x] || x);   // незнакомый ключ — показываем как есть
+    parts.push(mapped.join(', '));
+  }
+  return capFirst(parts.filter(Boolean).join(' ').replace(/\s+/g, ' ').trim());
+};
 const CX_BUILTIN_CATS = [['куртки','Куртки'],['худи','Свитшоты'],['рубашки','Рубашки'],['штаны','Штаны']];
 const CX_SEASON_MAP = { 'зима':'зима','winter':'зима','осень':'осень','autumn':'осень','fall':'осень','весна':'весна','spring':'весна','лето':'лето','summer':'лето',
   'осень весна':'осень-весна','весна осень':'осень-весна','осень весенний':'осень-весна','осень весенно':'осень-весна','демисезон':'осень-весна','демисезонный':'осень-весна','демисезонка':'осень-весна','осенне весенний':'осень-весна','весенне осенний':'осень-весна','полусезон':'осень-весна','деми':'осень-весна','demi':'осень-весна','demi season':'осень-весна','autumn spring':'осень-весна','spring autumn':'осень-весна','spring fall':'осень-весна','autumn fall':'осень-весна',
@@ -1039,6 +1142,7 @@ const CX_COLS = [
   { key:'description', label:'Описание', aliases:['описание','description','desc'] },
   { key:'short', label:'Описание короткое', aliases:['описание короткое','короткое описание','краткое описание','short','short description','краткая'] },
   { key:'material', label:'Материал', aliases:['материал','material','ткань','состав'] },
+  { key:'color', label:'Цвет', aliases:['цвет','color','colour'] },
   { key:'detail', label:'Деталь', aliases:['деталь','detail','детали','фишка','изюминка'] },
   { key:'active', label:'Активна', aliases:['активна','активен','active','on'] },
 ];
@@ -1121,7 +1225,8 @@ function cxValidate(rawRows) {
       quantity: 0,
       description: cxNorm(o.description).slice(0, 500),
       material: cxNorm(o.material).slice(0, 60),
-      detail: cxNorm(o.detail).slice(0, 60),
+      color: cxNorm(o.color).slice(0, 60),
+      detail: cxNorm(o.detail).slice(0, 120),
       short: cxNorm(o.short).slice(0, 90),
       images: cxNorm(o.images),
       errors: [],
@@ -1129,8 +1234,7 @@ function cxValidate(rawRows) {
     };
     // формула: если «Описание короткое» пусто — собираем из Категория + Материал + Деталь (если вписано руками — берём рукописное)
     if (!r.short) {
-      const catRaw = cxNorm(o.category);
-      r.short = [catRaw, r.material.toLowerCase(), r.detail.toLowerCase()].filter(Boolean).join(' ');
+      r.short = shortDescriptionBuild({ title: r.title, material: r.material, color: r.color, detail: r.detail });
     }
     if (!r.article) r.errors.push('нет артикула');
     else if (!/^[A-Za-zА-Яа-я0-9\-_]{2,40}$/.test(r.article)) r.errors.push('артикул: только буквы, цифры, «-» и «_»');
@@ -1188,7 +1292,7 @@ function cxRenderCheck() {
 }
 $('centerTemplateBtn').addEventListener('click', () => {
   const header = CX_COLS.map(c => c.label);
-  const example = ['19840','Куртка зимняя','куртки','Зима','38900','150,160,170','5','19840.jpg','Зимняя куртка с натуральным мехом','Куртка зимняя на меху','Мембрана','с капюшоном','да'];
+  const example = ['19840','свитшот','худи','Зима','18900','150,160,170','5','19840.jpg','Базовый свитшот на сезон','Свитшот трикотажный серый с лампасами','трикотаж','серый','лампасы','да'];
   const ws = XLSX.utils.aoa_to_sheet([header, example]);
   ws['!cols'] = header.map(() => ({ wch: 20 }));
   const wb = XLSX.utils.book_new();
@@ -1265,7 +1369,7 @@ $('centerPublishBtn').addEventListener('click', async () => {
       productsOut.push({ id: pid, article: r.article, ...field, color: '', images: uploaded, created_at: new Date().toISOString() });
     }
     const meta = productMeta();
-    meta[pid] = { ...(meta[pid] || {}), season: r.season, active: r.active, quantity: r.quantity, ...(r.short ? { short: r.short } : {}), ...(r.material ? { material: r.material } : {}), ...(r.detail ? { detail: r.detail } : {}) };
+    meta[pid] = { ...(meta[pid] || {}), season: r.season, active: r.active, quantity: r.quantity, ...(r.short ? { short: r.short } : {}), ...(r.material ? { material: r.material } : {}), ...(r.color ? { color: r.color } : {}), ...(r.detail ? { detail: r.detail } : {}) };
     SETTINGS.product_meta = JSON.stringify(meta);
     if (!CX_BUILTIN_CATS.some(([k]) => k === r.category)) newCats.add(r.category);
     r.pid = pid;
