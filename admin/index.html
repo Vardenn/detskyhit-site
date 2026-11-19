@@ -194,13 +194,11 @@ button.small{padding:6px 12px;font-size:12px}
 
   <div class="card" id="centerCard" style="margin-top:12px">
     <h2 style="font-size:16px;margin-bottom:4px">📦 «Центр» — загрузка пачкой через Excel</h2>
-    <p class="hint" style="margin:0 0 10px">1) Скачайте шаблон → 2) Заполните (категория и сезон — по списку, фото называйте как артикул: <code>19840.jpg</code>, <code>19840-1.jpg</code>) → 3) Загрузите Excel и папку фото → 4) Проверьте и нажмите «Опубликовать». Новая категория создастся сама.</p>
+    <p class="hint" style="margin:0 0 10px">1) Скачайте шаблон → 2) Заполните (категория и сезон — по списку, фото называйте как артикул: <code>12325.jpg</code>, <code>12325-1.jpg</code>) → 3) Нажмите «Выбрать папку» и выберите папку на компьютере: внутри — Excel + фото в папках по артикулу → 4) Проверьте и нажмите «Опубликовать». Фото прикрепятся к товарам автоматически по имени папки.</p>
     <div class="row" style="margin-top:0">
       <button class="cx-btn ghost" id="centerTemplateBtn" type="button">⬇ Скачать шаблон Excel</button>
-      <label class="cx-btn ghost" for="centerXlsxInput">📂 Загрузить Excel</label>
-      <input class="cx-file" id="centerXlsxInput" type="file" accept=".xlsx,.xls,.csv">
-      <label class="cx-btn ghost" for="centerPhotosInput">🖼 Выбрать папку фото</label>
-      <input class="cx-file" id="centerPhotosInput" type="file" webkitdirectory directory multiple>
+      <label class="cx-btn ghost" for="centerFolderInput">📁 Выбрать папку</label>
+      <input class="cx-file" id="centerFolderInput" type="file" webkitdirectory directory multiple>
       <span id="centerStatus" class="hint" style="margin:0"></span>
     </div>
     <div id="centerCheckWrap" class="hidden" style="margin-top:12px">
@@ -244,9 +242,10 @@ button.small{padding:6px 12px;font-size:12px}
       <label>Сезоны на сайте</label>
       <div class="season-toggles" id="seasonToggles">
         <button class="season-toggle active" data-s="зима">❄ Зима</button>
-        <button class="season-toggle active" data-s="осень">🍂 Осень</button>
         <button class="season-toggle active" data-s="весна">🌸 Весна</button>
         <button class="season-toggle active" data-s="лето">☀ Лето</button>
+        <button class="season-toggle active" data-s="осень">🍂 Осень</button>
+        <button class="season-toggle active" data-s="осень-весна">🍂🌸 Осень-Весна</button>
       </div>
       <p class="hint">Выключенный сезон скрывает его товары с сайта. Кружки в «Актуальном» исчезают автоматически, если по категории пусто.</p>
       <label style="margin-top:14px">«Актуальное» на сайте — названия, фото, порядок</label>
@@ -338,7 +337,7 @@ button.small{padding:6px 12px;font-size:12px}
           <div><label>Название</label><input type="text" id="fTitle"></div>
         </div>
         <div class="two-col">
-          <div><label>Сезон</label><select id="fSeason"><option value="">🔁 Всесезонная</option><option value="зима">❄ Зима</option><option value="осень">🍂 Осень</option><option value="весна">🌸 Весна</option><option value="лето">☀ Лето</option></select></div>
+          <div><label>Сезон</label><select id="fSeason"><option value="">🔁 Всесезонная</option><option value="зима">❄ Зима</option><option value="осень">🍂 Осень</option><option value="весна">🌸 Весна</option><option value="лето">☀ Лето</option><option value="осень-весна">🍂🌸 Осень-Весна</option></select></div>
           <div><label>Статус</label><button type="button" id="activeToggle" class="status-toggle">Активна</button></div>
         </div>
         <div class="two-col">
@@ -386,8 +385,8 @@ let PRODUCTS = [];
 let SETTINGS = {};
 let currentId = null;
 let dragEl = null;
-const SEASON_KEYS = ['зима','осень','весна','лето'];
-const SEASON_EMOJI = { 'зима':'❄', 'осень':'🍂', 'весна':'🌸', 'лето':'☀', '':'🔁' };
+const SEASON_KEYS = ['зима','осень','весна','лето','осень-весна'];
+const SEASON_EMOJI = { 'зима':'❄', 'осень':'🍂', 'весна':'🌸', 'лето':'☀', 'осень-весна':'🍂🌸', '':'🔁' };
 const parseJSON = (s, fb) => { try { const v = JSON.parse(s); return v === null || v === undefined ? fb : v; } catch { return fb; } };
 const productMeta = () => parseJSON(SETTINGS.product_meta, {});
 const seasonsEnabled = () => parseJSON(SETTINGS.seasons_enabled, SEASON_KEYS.slice());
@@ -1025,7 +1024,9 @@ $('doneResetBtn').addEventListener('click', () => {
 
 // ---------- «Центр»: загрузка пачкой через Excel ----------
 const CX_BUILTIN_CATS = [['куртки','Куртки'],['худи','Свитшоты'],['рубашки','Рубашки'],['штаны','Штаны']];
-const CX_SEASON_MAP = { 'зима':'зима','winter':'зима','осень':'осень','autumn':'осень','fall':'осень','весна':'весна','spring':'весна','лето':'лето','summer':'лето' };
+const CX_SEASON_MAP = { 'зима':'зима','winter':'зима','осень':'осень','autumn':'осень','fall':'осень','весна':'весна','spring':'весна','лето':'лето','summer':'лето',
+  'осень весна':'осень-весна','весна осень':'осень-весна','осень весенний':'осень-весна','осень весенно':'осень-весна','демисезон':'осень-весна','демисезонный':'осень-весна','демисезонка':'осень-весна','осенне весенний':'осень-весна','весенне осенний':'осень-весна','полусезон':'осень-весна','деми':'осень-весна','demi':'осень-весна','demi season':'осень-весна','autumn spring':'осень-весна','spring autumn':'осень-весна','spring fall':'осень-весна','autumn fall':'осень-весна',
+  'всесезонная':'','всесезонка':'','всесезонный':'','все сезоны':'','круглый год':'','all season':'','all year':'','all':'','any':'' };
 const CX_COLS = [
   { key:'article', label:'Артикул', aliases:['артикул','арт','арт.','article'] },
   { key:'title', label:'Название', aliases:['название','наименование','title','модель','name'] },
@@ -1137,9 +1138,9 @@ function cxValidate(rawRows) {
     seen.add(r.article.toLowerCase());
     if (!r.title) r.errors.push('нет названия');
     if (!r.category) r.errors.push('нет категории');
-    const sKey = r.seasonRaw.toLowerCase().replace(/ё/g, 'е');
-    r.season = CX_SEASON_MAP[sKey] || null;
-    if (!r.season) r.errors.push('сезон: Зима/Весна/Лето/Осень');
+    const sKey = r.seasonRaw.toLowerCase().replace(/ё/g, 'е').replace(/[-_/,;.+()]+/g, ' ').replace(/\s+/g, ' ').trim();
+    r.season = Object.prototype.hasOwnProperty.call(CX_SEASON_MAP, sKey) ? CX_SEASON_MAP[sKey] : null;
+    if (r.season === null) r.errors.push('сезон: Зима/Весна/Лето/Осень/Осень-Весна/Всесезонная');
     const priceDigits = String(o.price == null ? '' : o.price).replace(/[^\d]/g, '');
     if (!priceDigits) r.errors.push('цена: только цифры');
     else if (Number(priceDigits) < 100) r.errors.push('цена подозрительно маленькая');
@@ -1156,7 +1157,7 @@ function cxValidate(rawRows) {
     else if (/^(нет|no|0|false|выкл|отключена|отключен)$/.test(aRaw)) r.active = false;
     else { r.active = true; r.warnings.push('колонка «Активна» непонятна — считаю «да»'); }
     r.photos = cxMatchPhotos(r.article);
-    if (!r.photos.length) r.errors.push('фото по артикулу не найдены');
+    if (!r.photos.length) r.errors.push('Нет фото — выбери папку с фото');
     const existing = PRODUCTS.find(p => String(p.article).toLowerCase() === r.article.toLowerCase());
     r.existingId = existing ? existing.id : null;
     out.push(r);
@@ -1194,34 +1195,42 @@ $('centerTemplateBtn').addEventListener('click', () => {
   XLSX.utils.book_append_sheet(wb, ws, 'Товары');
   XLSX.writeFile(wb, 'DetskyHit-shablon.xlsx');
 });
-$('centerPhotosInput').addEventListener('change', e => {
+$('centerFolderInput').addEventListener('change', async e => {
+  const files = [...e.target.files];
+  e.target.value = '';
+  if (!files.length) return;
+  $('centerStatus').textContent = 'Читаю папку…';
+  const root = (files[0].webkitRelativePath || '').split('/')[0] || '';
+  const isXlsx = f => /\.(xlsx|xls|csv)$/i.test(f.name);
+  const isImg = f => /\.(jpe?g|png|webp|heic|heif)$/i.test(f.name);
+  const excel = files.find(isXlsx) || null;
+  const images = files.filter(isImg);
+  // раскладываем фото: если файл лежит в папке по артикулу — привязываем к ней; если в корне — как раньше, по имени файла
   CX.files = new Map();
-  for (const f of e.target.files) {
-    CX.files.set(cxPhotoName(f.name), f);
+  for (const f of images) {
+    const parts = String(f.webkitRelativePath || f.name).split('/');
+    const parent = parts.length >= 3 ? String(parts[parts.length - 2] || '').toLowerCase().trim() : '';
+    const name = String(f.name || '').toLowerCase();
+    const key = (/^[A-Za-zА-Яа-я0-9\-_]{2,40}$/.test(parent) ? parent + '-' : '') + name;
+    CX.files.set(key, f);
   }
-  $('centerStatus').textContent = `Фото выбрано: ${CX.files.size} фай(л/ов)`;
-  if (CX.raw.length) cxRenderCheck();
-  e.target.value = '';
-});
-$('centerXlsxInput').addEventListener('change', e => {
-  const f = e.target.files[0]; if (!f) return;
-  $('centerStatus').textContent = 'Читаю Excel…';
-  const fr = new FileReader();
-  fr.onload = () => {
-    try {
-      const wb = XLSX.read(fr.result, { type: 'array' });
-      const ws = wb.Sheets[wb.SheetNames[0]];
-      const raw = XLSX.utils.sheet_to_json(ws, { defval: '', raw: false });
-      CX.raw = raw.filter(r => Object.values(r).some(v => String(v).trim() !== ''));
-      if (!CX.raw.length) { $('centerStatus').textContent = 'В файле нет строк'; return; }
-      $('centerStatus').textContent = `Строк: ${CX.raw.length}`;
-      cxRenderCheck();
-    } catch (err) {
-      $('centerStatus').textContent = 'Не смог прочитать: ' + (err && err.message ? err.message : err);
+  try {
+    if (!excel) {
+      $('centerStatus').textContent = `Папка «${root}»: Excel с таблицей товаров не найден — положи файл .xlsx внутри папки (рядом с папками 12325, 12326…)`;
+      return;
     }
-  };
-  fr.readAsArrayBuffer(f);
-  e.target.value = '';
+    const buf = await excel.arrayBuffer();
+    const wb = XLSX.read(buf, { type: 'array' });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const raw = XLSX.utils.sheet_to_json(ws, { defval: '', raw: false });
+    CX.raw = raw.filter(r => Object.values(r).some(v => String(v).trim() !== ''));
+    if (!CX.raw.length) { $('centerStatus').textContent = `Папка «${root}»: Excel найден, но строк в нём нет`; return; }
+    $('centerStatus').textContent = `Папка «${root}»: строк — ${CX.raw.length}, фото — ${CX.files.size}`;
+    cxRenderCheck();
+  } catch (err) {
+    console.log('folder parse error:', err);
+    $('centerStatus').textContent = 'Не вышло прочитать папку: ' + (err && err.message ? err.message : err);
+  }
 });
 $('centerPublishBtn').addEventListener('click', async () => {
   const rows = CX.rows.filter(r => !r.errors.length);

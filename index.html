@@ -299,9 +299,9 @@ const DEFAULT_HL = [
 ];
 function hlDefs() { return parseJSON(SETTINGS.highlights, DEFAULT_HL); }
 // --- seasons & product flags stored inside settings JSON (no DB schema change) ---
-const SEASON_KEYS = ['зима', 'осень', 'весна', 'лето'];
-const SEASON_LABEL = { 'зима': 'Зима', 'осень': 'Осень', 'весна': 'Весна', 'лето': 'Лето', '': 'Всесезонная' };
-const SEASON_ICON = { 'зима': '❄', 'осень': '🍂', 'весна': '🌸', 'лето': '☀', '': '🔁' };
+const SEASON_KEYS = ['зима', 'осень', 'весна', 'лето', 'осень-весна'];
+const SEASON_LABEL = { 'зима': 'Зима', 'осень': 'Осень', 'весна': 'Весна', 'лето': 'Лето', 'осень-весна': 'Осень-Весна', '': 'Всесезонная' };
+const SEASON_ICON = { 'зима': '❄', 'осень': '🍂', 'весна': '🌸', 'лето': '☀', 'осень-весна': '🍂🌸', '': '🔁' };
 function parseJSON(s, fb) { try { const v = JSON.parse(s); return v === null || v === undefined ? fb : v; } catch (e) { return fb; } }
 function seasonsEnabled() { return parseJSON(SETTINGS.seasons_enabled, SEASON_KEYS.slice()); }
 function circleOrder() { const defs = hlDefs(); const known = new Set(defs.map(d => d.key)); const saved = parseJSON(SETTINGS.hl_order, defs.map(d => d.key)); const filtered = saved.filter(k => known.has(k)); const missing = defs.map(d => d.key).filter(k => !filtered.includes(k)); return filtered.concat(missing); }
@@ -315,6 +315,7 @@ function visibleProducts() {
     if (m.active === false) return false;
     const season = m.season === undefined ? 'зима' : m.season;
     if (!season) return true;
+    if (season === 'осень-весна') return enabled.has('осень-весна') || enabled.has('осень') || enabled.has('весна');
     return enabled.has(season);
   });
 }
